@@ -11,6 +11,9 @@ NyayaSetu answers legal questions in English, Hindi or Hinglish with **verified 
 sections to new ones, **reads legal PDFs**, and analyses an incident with **its own trained model**: likely
 charges, how serious they are, and the person's rights and options.
 
+**Live demo:** https://nyayasetu-doeu.onrender.com (sign in with demo@nyayasetu.in / demo1234). It runs on a
+free plan: the first visit after a quiet period takes about a minute to wake the server.
+
 Legal information, not legal advice.
 
 ## Features
@@ -152,7 +155,7 @@ starts the deployment image (`docker` job).
 
 ## Deploying
 
-Free on Render, straight from this repository (`render.yaml`, 512 MB RAM, no credit card): see
+Live at https://nyayasetu-doeu.onrender.com. Free on Render, straight from this repository (`render.yaml`, 512 MB RAM, no credit card): see
 [DEPLOY.md](DEPLOY.md).
 
 ## Project structure

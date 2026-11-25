@@ -3,6 +3,8 @@
 Render's free web service (512 MB RAM, no credit card) runs the whole app, including the trained model, straight
 from this GitHub repository. The settings are in [`render.yaml`](render.yaml).
 
+The live deployment is at **https://nyayasetu-doeu.onrender.com**.
+
 ## One-time setup (in the browser)
 1. Open https://render.com and choose **Get Started** → **GitHub**. Sign in with the GitHub account that owns
    this repository and allow Render to access it.
