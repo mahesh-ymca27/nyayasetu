@@ -53,10 +53,26 @@ def train(texts: list[str], labels: list[list[str]], C: float = 4.0, max_feature
     keep = Y.sum(axis=0) > 0
     vec = build_vectorizer(max_features=max_features, min_df=min_df)
     X = vec.fit_transform(texts)
+    # Canonical CSR (sorted indices, no duplicates). Otherwise the parallel workers, which receive X
+    # as a read-only memory map, try to sort it in place and fail with
+    # "WRITEBACKIFCOPY base is read-only" (seen on Windows).
+    X.sum_duplicates()
+    X.sort_indices()
     log(f"  features: {X.shape[1]:,} terms, {X.shape[0]:,} documents, {Y.shape[1]} sections")
-    clf = OneVsRestClassifier(
-        LogisticRegression(C=C, solver="liblinear", class_weight="balanced", max_iter=300), n_jobs=n_jobs)
-    clf.fit(X, Y[:, keep])
+
+    def fit(jobs):
+        c = OneVsRestClassifier(
+            LogisticRegression(C=C, solver="liblinear", class_weight="balanced", max_iter=300), n_jobs=jobs)
+        c.fit(X, Y[:, keep])
+        return c
+
+    try:
+        clf = fit(n_jobs)
+    except ValueError as e:
+        if n_jobs == 1 or "read-only" not in str(e):
+            raise
+        log("  parallel training failed on this machine; retrying on one CPU core (slower)")
+        clf = fit(1)
     W = np.vstack([e.coef_.ravel() for e in clf.estimators_]).astype(np.float32)
     b = np.array([e.intercept_[0] for e in clf.estimators_], dtype=np.float32)
     log(f"  trained in {time.time() - t0:.0f}s")
