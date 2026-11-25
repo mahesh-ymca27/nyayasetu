@@ -22,6 +22,23 @@ def test_training_data_columns_are_detected():
     assert texts == ["He stole a bike."] and labels == [["379"]]
 
 
+def test_labels_as_ids_into_statutes_table():
+    from ml.train_section_predictor import resolve, statute_lookup
+
+    with_ids = statute_lookup([{"id": 5, "name": "Section 302"}, {"id": 34, "name": "Section 34"},
+                               {"id": "S12", "name": "Section 498A", "text": "Husband or relative of husband..."}])
+    assert resolve(5, with_ids) == "302" and resolve("5", with_ids) == "302"
+    assert resolve(34, with_ids) == "34" and resolve("S12", with_ids) == "498A"
+    assert resolve("Section 307", with_ids) == "307"  # labels that are already names still work
+
+    by_position = statute_lookup([{"name": "Section 302", "text": "Whoever commits murder shall be punished"},
+                                  {"name": "Section 420", "text": "Whoever cheats and thereby dishonestly induces"}])
+    assert resolve(0, by_position) == "302" and resolve(1, by_position) == "420"
+
+    texts, labels = to_examples([{"text": ["He stabbed him."], "labels": [5, 34]}], with_ids)
+    assert labels == [["302", "34"]]
+
+
 def test_predict_without_model_falls_back_to_search(client, auth):
     s = client.get("/api/predict/status", headers=auth).json()
     assert s["available"] is False and s["error"] == "not_trained"

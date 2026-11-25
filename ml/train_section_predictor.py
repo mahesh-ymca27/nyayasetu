@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import json
 import platform
+import re
 import sys
 import time
 from collections import Counter
@@ -39,12 +40,42 @@ def pick(row: dict, names: tuple[str, ...], what: str):
     raise SystemExit(f"Could not find the {what} column. Columns in the data: {list(row)}")
 
 
-def to_examples(rows) -> tuple[list[str], list[list[str]]]:
+SECTION_WORD = re.compile(r"(?i)\bsection\b|\bs\.\s*\d|_\d")
+
+
+def statute_lookup(rows) -> dict[str, str]:
+    """Maps statute IDs to names using the dataset's 'statutes' table.
+
+    IL-TUR's labels can be IDs into that table instead of section names. For each row the name is
+    the shortest text that looks like a section ("Section 302"); every other value is treated as an ID."""
+    lookup: dict[str, str] = {}
+    for index, row in enumerate(rows or []):
+        values = [v for v in row.values() if isinstance(v, (str, int)) and not isinstance(v, bool)]
+        texts = [v for v in values if isinstance(v, str) and section_model.normalize_label(v)]
+        named = [v for v in texts if SECTION_WORD.search(v)] or texts
+        if not named:
+            continue
+        name = min(named, key=len)
+        others = [v for v in values if v is not name]
+        for v in others:
+            lookup[str(v).strip()] = name
+        if not any(isinstance(v, int) or (isinstance(v, str) and len(v) <= 12) for v in others):
+            lookup.setdefault(str(index), name)  # no ID column: labels refer to the row position
+    return lookup
+
+
+def resolve(label, lookup: dict[str, str]) -> str | None:
+    key = str(label).strip()
+    return section_model.normalize_label(lookup.get(key, key))
+
+
+def to_examples(rows, lookup: dict[str, str] | None = None) -> tuple[list[str], list[list[str]]]:
+    lookup = lookup or {}
     texts, labels = [], []
     for row in rows:
         raw = pick(row, LABEL_FIELDS, "labels")
         raw = raw if isinstance(raw, (list, tuple)) else [raw]
-        ls = sorted({x for x in (section_model.normalize_label(l) for l in raw) if x})
+        ls = sorted({x for x in (resolve(l, lookup) for l in raw) if x})
         text = section_model.join_text(pick(row, TEXT_FIELDS, "text"))
         if ls and text.strip():
             texts.append(text)
@@ -75,6 +106,8 @@ def load_from_hub() -> dict:
         name = next((n for n in names if n in ds), None)
         if name:
             out[split] = list(ds[name])
+    if "statutes" in ds:
+        out["statutes"] = list(ds["statutes"])
     return out
 
 
@@ -90,10 +123,26 @@ def load_from_dir(d: Path) -> dict:
     return out
 
 
+def preview(splits: dict, lookup: dict[str, str]) -> None:
+    """Prints what the raw labels look like, so a wrong label mapping is easy to spot."""
+    rows = splits.get("train") or []
+    if rows:
+        first = rows[0]
+        print(f"  columns: {list(first)}")
+        raw = pick(first, LABEL_FIELDS, "labels")
+        raw = raw if isinstance(raw, (list, tuple)) else [raw]
+        print(f"  first case labels (raw): {raw[:6]}")
+        print(f"  first case labels (read as): {[resolve(l, lookup) for l in raw[:6]]}")
+    if lookup:
+        sample = list(lookup.items())[:3]
+        print(f"  statutes table: {len(lookup)} ID entries, e.g. {sample}")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--data-dir", type=Path, help="folder with train.json, dev.json, test.json")
     ap.add_argument("--quick", action="store_true", help="train on 5,000 cases only (fast trial)")
+    ap.add_argument("--check", action="store_true", help="only load the data and show the labels, then stop")
     ap.add_argument("--max-features", type=int, default=60000)
     ap.add_argument("--C", type=float, default=4.0)
     args = ap.parse_args()
@@ -102,7 +151,9 @@ def main() -> None:
     splits = load_from_dir(args.data_dir) if args.data_dir else load_from_hub()
     if "train" not in splits or "test" not in splits:
         raise SystemExit(f"Need train and test splits, found: {list(splits)}")
-    data = {s: to_examples(rows) for s, rows in splits.items()}
+    lookup = statute_lookup(splits.pop("statutes", None))
+    preview(splits, lookup)
+    data = {s: to_examples(rows, lookup) for s, rows in splits.items()}
     if "dev" not in data:  # carve a dev set out of train if the dataset has none
         t, l = data["train"]
         cut = len(t) // 10
@@ -113,8 +164,16 @@ def main() -> None:
     for s in ("train", "dev", "test"):
         print(f"  {s:5}: {len(data[s][0]):,} cases")
     label_counts = Counter(l for ls in data["train"][1] for l in ls)
-    print(f"  sections in training data: {len(label_counts)}; most common: "
-          + ", ".join(f"IPC {k} ({v})" for k, v in label_counts.most_common(5)))
+    from backend.corpus import get_corpus
+
+    corpus = get_corpus()
+    print(f"  sections in training data: {len(label_counts)}. Most common (check these look like real criminal cases):")
+    for k, v in label_counts.most_common(10):
+        sec = corpus.get("IPC", k)
+        print(f"    IPC {k:5} {v:6,} cases   {sec['heading'][:60] if sec else '(not in the IPC text)'}")
+    if args.check:
+        print("\n--check given: stopping before training.")
+        return
 
     print("\n[2/5] Training (TF-IDF + one logistic regression per section). This takes a few minutes.")
     t0 = time.time()
