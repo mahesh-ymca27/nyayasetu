@@ -39,6 +39,10 @@ Interactive API documentation (Swagger) is at **http://localhost:8000/docs**.
 Without a Groq key the app still works in *offline mode*: retrieval, conversion, PDF analysis, graph and
 evaluation are all local; only the written AI answers and AI summaries need the key.
 
+**Running the tests:** `pip install -r requirements-dev.txt`, then `python -m pytest`. The tests use a
+temporary database and never call Groq, so they don't touch your data or your API quota. GitHub Actions runs
+them on Linux and Windows for every pull request.
+
 **Demo script (5 minutes):** Dashboard → Converter (IPC 420, then "Load sample" → Detect & convert) →
 Assistant (ask a Hindi question) → Document Analyzer ("Try a sample FIR", open each tab) → Knowledge Graph →
 Evaluation Lab.
