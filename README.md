@@ -125,8 +125,24 @@ The Hindi / Hinglish vocabulary was written with this question set in view, so t
 **Automatic code alignment** (CrPC → BNSS, IEA → BSA) against well-known transitions: **17/18 (94%)** and
 **11/12 (92%)**. A few merged sections (e.g. CrPC 41A → BNSS 35) are added by hand and labelled "curated".
 
-**Model vs Groq vs hybrid** on IL-TUR test cases: run `python -m ml.evaluate_case_pipeline` (needs the Groq key);
-the results appear in the Evaluation Lab.
+**Model vs Groq vs hybrid**: which IPC sections apply, on 40 random IL-TUR test cases with known answers
+(seed 7). Example-based scores, averaged over cases:
+
+| Method | Precision | Recall | F1 | Micro-F1 | Sections per case | Not a real IPC section |
+|---|---|---|---|---|---|---|
+| **Trained model only** | 48.8% | **53.1%** | **44.9%** | **51.8%** | 4.7 | 0 |
+| Groq only (`openai/gpt-oss-120b`) | 25.4% | 22.8% | 22.0% | 26.9% | 3.3 | 1 |
+| Hybrid: model proposes 10, Groq chooses | **57.3%** | 35.1% | 37.8% | 43.4% | 2.5 | 0 |
+
+- The trained model is about **twice as accurate as the LLM alone** (F1 44.9% vs 22.0%), and the LLM alone
+  named one section that does not exist.
+- The hybrid is the **most precise** (57.3%): the sections it names are most often right. It names fewer
+  sections, so it misses more, and its recall is capped because the model's top-10 candidates contain 70% of the
+  correct sections. The Case Analyzer favours precision, because naming a wrong charge misleads a user more than
+  leaving a doubtful one under "depends on the evidence".
+- Caveats: only 40 cases, and Groq saw the first 3,000 characters of each case while the model read the full
+  text. Reproduce with `python -m ml.evaluate_case_pipeline --n 40` (needs the Groq key, about an hour on the
+  free tier); the results also appear in the Evaluation Lab.
 
 ## Tests
 
