@@ -59,6 +59,29 @@ export async function render(el) {
     <div class="faint mt" style="font-size:12px">Method: ${esc(h.label)}. The question set is in data/eval_questions.json and can be extended.</div>
   </div>`;
 
+  get("/api/predict/status").then((s) => {
+    const m = s.metrics;
+    const box = document.createElement("div");
+    box.className = "card mt";
+    if (!m) {
+      box.innerHTML = `<div class="card-title">${icon("zap")} Section Predictor (trained model)</div><div class="muted mt" style="font-size:12.5px">Not trained yet. Run <span class="mono">python -m ml.train_section_predictor</span> to add its results here.</div>`;
+    } else {
+      const t = m.test;
+      box.innerHTML = `<div class="card-head"><div><div class="card-title">${icon("zap")} Section Predictor (trained model)</div>
+        <div class="card-sub">${esc(m.model)} · trained on ${m.train_cases.toLocaleString("en-IN")} cases, tested on ${m.test_cases.toLocaleString("en-IN")} unseen cases (${esc(m.dataset)})</div></div></div>
+        <div class="table-wrap"><table><thead><tr><th>Model</th><th>Macro-F1</th><th>Micro-F1</th><th>Top-1 correct</th><th>Hit@3</th><th>Recall@5</th></tr></thead><tbody>
+        <tr style="background:rgba(255,153,51,.07)"><td><b>NyayaSetu Section Predictor</b></td><td>${pct(t.macro_f1)}</td><td>${pct(t.micro_f1)}</td><td>${pct(t.precision_at_1)}</td><td>${pct(t.hit_at_3)}</td><td>${pct(t.recall_at_5)}</td></tr>
+        <tr><td>${esc(m.reference.name)}</td><td>${pct(m.reference.macro_f1)}</td><td class="faint">—</td><td class="faint">—</td><td class="faint">—</td><td class="faint">—</td></tr>
+        </tbody></table></div>
+        <div class="card-sub mt">Threshold tuning on the dev set (macro-F1 by decision threshold)</div><div id="thr"></div>`;
+      el.appendChild(box);
+      groupedBars(box.querySelector("#thr"), m.threshold_curve.filter((_, i) => i % 2 === 0).map((c) => ({ label: String(c.threshold), values: { macro: c.macro_f1, micro: c.micro_f1 } })),
+        [{ key: "macro", label: "Macro-F1", color: "#ff9933" }, { key: "micro", label: "Micro-F1", color: "#8b5cf6" }], { height: 200 });
+      return;
+    }
+    el.appendChild(box);
+  }).catch(() => {});
+
   gauge($("#g1"), h["hit@1"], { label: `BM25: ${pct(b["hit@1"])}`, colorA: "#ff9933" });
   gauge($("#g3"), h["hit@3"], { label: `BM25: ${pct(b["hit@3"])}`, colorA: "#8b5cf6" });
   gauge($("#g5"), h["hit@5"], { label: `BM25: ${pct(b["hit@5"])}`, colorA: "#22c55e" });
