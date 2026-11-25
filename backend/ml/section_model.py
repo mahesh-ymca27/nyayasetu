@@ -40,8 +40,18 @@ def build_vectorizer(max_features: int = 60000, min_df: int = 3):
                            min_df=min_df, max_df=0.9, max_features=max_features, dtype=np.float32)
 
 
+def resolve_jobs(n_jobs: int) -> int:
+    """-1 means 'all logical processors except two', so the laptop stays usable while training."""
+    import os
+
+    cpus = os.cpu_count() or 1
+    if n_jobs is None or n_jobs < 1:
+        return max(1, cpus - 2) if cpus > 2 else cpus
+    return min(n_jobs, cpus)
+
+
 def train(texts: list[str], labels: list[list[str]], C: float = 4.0, max_features: int = 60000,
-          min_df: int = 3, n_jobs: int = -1, log=print) -> dict:
+          min_df: int = 3, n_jobs: int = -1, log=print, verbose: int = 0) -> dict:
     """Fits the model and returns it as a dict of arrays (see module docstring)."""
     import numpy as np
     from sklearn.linear_model import LogisticRegression
@@ -61,19 +71,32 @@ def train(texts: list[str], labels: list[list[str]], C: float = 4.0, max_feature
     X.sort_indices()
     log(f"  features: {X.shape[1]:,} terms, {X.shape[0]:,} documents, {Y.shape[1]} sections")
 
-    def fit(jobs):
+    from joblib import parallel_backend
+
+    jobs = resolve_jobs(n_jobs)
+
+    def fit(backend: str, workers: int):
         c = OneVsRestClassifier(
-            LogisticRegression(C=C, solver="liblinear", class_weight="balanced", max_iter=300), n_jobs=jobs)
-        c.fit(X, Y[:, keep])
+            LogisticRegression(C=C, solver="liblinear", class_weight="balanced", max_iter=300),
+            n_jobs=workers, verbose=verbose)
+        with parallel_backend(backend, n_jobs=workers):
+            c.fit(X, Y[:, keep])
         return c
 
-    try:
-        clf = fit(n_jobs)
-    except ValueError as e:
-        if n_jobs == 1 or "read-only" not in str(e):
-            raise
-        log("  parallel training failed on this machine; retrying on one CPU core (slower)")
-        clf = fit(1)
+    # Threads first: liblinear releases Python's GIL, so threads train sections truly in parallel,
+    # and they share X instead of copying it into read-only memory maps (the cause of the Windows
+    # "WRITEBACKIFCOPY base is read-only" error with worker processes). Fall back if a backend fails.
+    attempts = [("threading", jobs), ("loky", jobs), ("sequential", 1)] if jobs > 1 else [("sequential", 1)]
+    for i, (backend, workers) in enumerate(attempts):
+        try:
+            label = "1 CPU core" if workers == 1 else f"{workers} parallel {'threads' if backend == 'threading' else 'processes'}"
+            log(f"  training {int(keep.sum())} section classifiers using {label}")
+            clf = fit(backend, workers)
+            break
+        except (ValueError, OSError, MemoryError) as e:
+            if i == len(attempts) - 1:
+                raise
+            log(f"  {backend} training failed ({type(e).__name__}: {str(e)[:80]}); trying the next method")
     W = np.vstack([e.coef_.ravel() for e in clf.estimators_]).astype(np.float32)
     b = np.array([e.intercept_[0] for e in clf.estimators_], dtype=np.float32)
     log(f"  trained in {time.time() - t0:.0f}s")

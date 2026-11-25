@@ -70,7 +70,8 @@ def tiny_model(tmp_path, monkeypatch):
         for t in examples * 3:
             texts.append(t)
             labels.append([sec])
-    model = section_model.train(texts, labels, max_features=2000, min_df=1, n_jobs=1, log=lambda *_: None)
+    # n_jobs=2 exercises the parallel (threading) path used on the laptop.
+    model = section_model.train(texts, labels, max_features=2000, min_df=1, n_jobs=2, log=lambda *_: None)
     threshold, curve = section_model.tune_threshold(model, texts, labels)
     path = tmp_path / "section_predictor.joblib"
     section_model.save(model, path)
@@ -97,6 +98,25 @@ def test_train_evaluate_save_load_predict(tiny_model):
 
     hindi = predictor.predict("मेरा मोबाइल चोरी हो गया, किसी ने दुकान से उठा लिया")
     assert "theft" in " ".join(hindi["added_terms"])
+
+
+def test_parallel_and_single_core_training_agree():
+    pytest.importorskip("sklearn")
+    texts = [t for ex in SYNTHETIC.values() for t in ex * 3]
+    labels = [[sec] for sec, ex in SYNTHETIC.items() for _ in ex * 3]
+    quiet = dict(max_features=2000, min_df=1, log=lambda *_: None)
+    a = section_model.train(texts, labels, n_jobs=3, **quiet)
+    b = section_model.train(texts, labels, n_jobs=1, **quiet)
+    assert a["labels"] == b["labels"] and abs(a["W"] - b["W"]).max() < 1e-5
+
+
+def test_resolve_jobs():
+    import os
+
+    cpus = os.cpu_count() or 1
+    assert section_model.resolve_jobs(1) == 1
+    assert 1 <= section_model.resolve_jobs(-1) <= cpus
+    assert section_model.resolve_jobs(10_000) == cpus
 
 
 def test_reloaded_model_gives_same_scores(tiny_model, tmp_path):
