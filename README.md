@@ -152,7 +152,8 @@ starts the deployment image (`docker` job).
 
 ## Deploying
 
-Free on Hugging Face Spaces (2 vCPU, 16 GB RAM): see [DEPLOY.md](DEPLOY.md).
+Free on Render, straight from this repository (`render.yaml`, 512 MB RAM, no credit card): see
+[DEPLOY.md](DEPLOY.md).
 
 ## Project structure
 

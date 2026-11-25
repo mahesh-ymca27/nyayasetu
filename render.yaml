@@ -1,0 +1,20 @@
+# Render Blueprint: deploys NyayaSetu as a free web service straight from this GitHub repository.
+# Render dashboard -> New -> Blueprint -> pick this repository. It asks for GROQ_API_KEY once.
+services:
+  - type: web
+    name: nyayasetu
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python run.py
+    healthCheckPath: /api/health
+    autoDeploy: true            # redeploys automatically when main changes
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+      - key: HOST
+        value: 0.0.0.0          # Render sets PORT itself; run.py reads it
+      - key: NYAYASETU_STORAGE
+        value: /tmp/nyayasetu   # free services have no permanent disk
+      - key: GROQ_API_KEY
+        sync: false             # secret: entered in the Render dashboard, never stored in the repo
