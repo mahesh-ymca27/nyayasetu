@@ -152,6 +152,8 @@ def main() -> None:
     ap.add_argument("--check", action="store_true", help="only load the data and show the labels, then stop")
     ap.add_argument("--max-features", type=int, default=60000)
     ap.add_argument("--C", type=float, default=4.0)
+    ap.add_argument("--jobs", type=int, default=-1,
+                    help="CPU threads to use (default: all logical processors except two)")
     args = ap.parse_args()
 
     print("\n[1/5] Loading data")
@@ -182,9 +184,14 @@ def main() -> None:
         print("\n--check given: stopping before training.")
         return
 
+    import os
+
     print("\n[2/5] Training (TF-IDF + one logistic regression per section). This takes a few minutes.")
+    print(f"  this computer has {os.cpu_count()} logical processors; using {section_model.resolve_jobs(args.jobs)}")
+    print("  progress lines like '[Parallel(n_jobs=10)]: Done 40 tasks' show how many sections are finished")
     t0 = time.time()
-    model = section_model.train(*data["train"], C=args.C, max_features=args.max_features)
+    model = section_model.train(*data["train"], C=args.C, max_features=args.max_features, n_jobs=args.jobs,
+                                verbose=5)
     train_seconds = round(time.time() - t0)
 
     print("\n[3/5] Tuning the decision threshold on the dev set")
