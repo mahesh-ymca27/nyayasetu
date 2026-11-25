@@ -4,6 +4,7 @@ import { $, esc, icon, openSection, toast } from "./ui.js";
 import * as dashboard from "./pages/dashboard.js";
 import * as assistant from "./pages/assistant.js";
 import * as converter from "./pages/converter.js";
+import * as predictorPage from "./pages/predictor.js";
 import * as documents from "./pages/documents.js";
 import * as library from "./pages/library.js";
 import * as graphPage from "./pages/graph.js";
@@ -14,6 +15,7 @@ const ROUTES = {
   dashboard: { page: dashboard, title: "Dashboard", crumb: "Overview of the legal corpus and your activity", icon: "dashboard", group: "Workspace" },
   assistant: { page: assistant, title: "AI Legal Assistant", crumb: "Ask in English, Hindi or Hinglish. Answers cite the exact section", icon: "chat", group: "Workspace", badge: "AI" },
   converter: { page: converter, title: "IPC → BNS Converter", crumb: "Old section numbers to the 2023 codes, with a word-level diff", icon: "swap", group: "Workspace" },
+  predictor: { page: predictorPage, title: "Section Predictor", crumb: "Describe an incident; a trained ML model suggests the sections that may apply", icon: "target", group: "Workspace", badge: "ML" },
   documents: { page: documents, title: "Document Analyzer", crumb: "Extract text from FIRs, judgments and notices; detect and convert sections", icon: "file", group: "Workspace", badge: "PDF" },
   library: { page: library, title: "Law Library", crumb: "Browse all 2,354 sections of the six criminal codes", icon: "book", group: "Explore" },
   graph: { page: graphPage, title: "Knowledge Graph", crumb: "How the old codes map onto BNS, BNSS and BSA", icon: "graph", group: "Explore" },

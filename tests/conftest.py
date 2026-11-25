@@ -9,6 +9,7 @@ import pytest
 _TMP = tempfile.mkdtemp(prefix="nyayasetu-tests-")
 os.environ["NYAYASETU_STORAGE"] = _TMP
 os.environ["NYAYASETU_OFFLINE"] = "1"
+os.environ["NYAYASETU_MODELS_DIR"] = os.path.join(_TMP, "models")  # never load a model trained on this laptop
 os.environ.pop("GROQ_MODEL", None)
 
 ROOT = Path(__file__).resolve().parent.parent

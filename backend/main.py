@@ -14,7 +14,7 @@ from fastapi.responses import JSONResponse, PlainTextResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import db, graph, llm, pdf_service, rag
+from . import db, graph, llm, pdf_service, predictor, rag
 from .config import FRONTEND_DIR, settings
 from .corpus import OLD_TO_NEW, get_corpus, norm_number, roman_to_int
 from .detector import convert, convert_text, detect_references, reverse
@@ -453,6 +453,31 @@ def graph_section(section_id: str, user: dict = Depends(current_user)):
 @app.get("/api/evaluation", tags=["evaluation"])
 def evaluation(user: dict = Depends(current_user)):
     return run_benchmark()
+
+
+# --------------------------------------------------------------------------- section predictor (own ML model)
+class PredictIn(BaseModel):
+    text: str
+    k: int = 5
+
+
+@app.get("/api/predict/status", tags=["predictor"])
+def predict_status(user: dict = Depends(current_user)):
+    return predictor.status()
+
+
+@app.post("/api/predict", tags=["predictor"])
+def predict_sections(body: PredictIn, user: dict = Depends(current_user)):
+    text = body.text.strip()
+    if len(text) < 15:
+        raise HTTPException(400, "Please describe what happened in at least one full sentence.")
+    if len(text) > 20000:
+        raise HTTPException(413, "Text is too long (max 20,000 characters).")
+    out = predictor.predict(text, k=min(max(body.k, 1), 10))
+    top = out["predictions"][0] if out["predictions"] else None
+    db.log_activity(user["id"], "predict", f"Section prediction: {text[:80]}",
+                    f"top: {top['ipc']} ({round(top['probability'] * 100)}%)" if top else "search only")
+    return out
 
 
 # --------------------------------------------------------------------------- frontend

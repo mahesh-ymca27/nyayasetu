@@ -39,6 +39,13 @@ Interactive API documentation (Swagger) is at **http://localhost:8000/docs**.
 Without a Groq key the app still works in *offline mode*: retrieval, conversion, PDF analysis, graph and
 evaluation are all local; only the written AI answers and AI summaries need the key.
 
+**Training the Section Predictor (own ML model):** `pip install -r requirements-ml.txt`, then
+`python -m ml.train_section_predictor`. It downloads the IL-TUR Legal Statute Identification dataset from
+Hugging Face, trains a TF-IDF + logistic-regression classifier on a normal laptop CPU in a few minutes, and
+writes `models/section_predictor.joblib` and its test results to `models/section_predictor_metrics.json`.
+Restart the app and open **Section Predictor**. Without a trained model the page shows search-based
+suggestions only.
+
 **Running the tests:** `pip install -r requirements-dev.txt`, then `python -m pytest`. The tests use a
 temporary database and never call Groq, so they don't touch your data or your API quota. GitHub Actions runs
 them on Linux and Windows for every pull request.

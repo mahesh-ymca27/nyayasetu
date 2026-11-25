@@ -3,7 +3,7 @@ import { areaChart, barChart, color, donut, sparkline } from "../charts.js";
 import { $, animateCount, esc, fmt, icon, timeAgo } from "../ui.js";
 import { auth } from "../api.js";
 
-const KIND_ICON = { ask: ["chat", "i-saffron"], document: ["file", "i-indigo"], convert: ["swap", "i-teal"], summary: ["sparkles", "i-rose"], user: ["user", "i-green"], settings: ["settings", "i-sky"] };
+const KIND_ICON = { predict: ["target", "i-green"], ask: ["chat", "i-saffron"], document: ["file", "i-indigo"], convert: ["swap", "i-teal"], summary: ["sparkles", "i-rose"], user: ["user", "i-green"], settings: ["settings", "i-sky"] };
 
 export async function render(el) {
   el.innerHTML = skeleton();
