@@ -20,3 +20,32 @@ jobs:
           cache: pip
       - run: pip install -r requirements-dev.txt
       - run: python -m pytest
+
+  # Builds the Hugging Face Space image from THIS commit (the real Dockerfile downloads main from GitHub,
+  # so the download step is swapped for a local copy) and checks that the app starts and works.
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the Space image from this commit
+        run: |
+          sed -e 's#^ADD https://github.com/.*#COPY . /app/#' \
+              -e 's#tar -xzf /tmp/source.tar.gz --strip-components=1 -C /app#true#' \
+              -e 's#&& rm /tmp/source.tar.gz##' \
+              deploy/huggingface/Dockerfile > Dockerfile.ci
+          grep -q "COPY . /app/" Dockerfile.ci
+          docker build -f Dockerfile.ci -t nyayasetu .
+      - name: Start it like Hugging Face does (secret key in the environment, no .env file)
+        run: |
+          docker run -d --name app -p 7860:7860 -e GROQ_API_KEY=gsk_ci_dummy_key nyayasetu
+          for i in $(seq 1 30); do curl -sf http://localhost:7860/api/health && break; sleep 2; done
+          docker logs app
+      - name: Check the running app
+        run: |
+          curl -sf http://localhost:7860/api/health | tee health.json
+          grep -q '"sections":2354' health.json
+          TOKEN=$(curl -sf -X POST http://localhost:7860/api/auth/login -H 'Content-Type: application/json' \
+                  -d '{"email":"demo@nyayasetu.in","password":"demo1234"}' | python3 -c 'import sys,json;print(json.load(sys.stdin)["token"])')
+          curl -sf http://localhost:7860/api/predict/status -H "Authorization: Bearer $TOKEN" | tee status.json
+          grep -q '"available":true' status.json
+          curl -sf http://localhost:7860/ | grep -q NyayaSetu
