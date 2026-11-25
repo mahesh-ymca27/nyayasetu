@@ -46,7 +46,7 @@ class FakeResponse(io.BytesIO):
 def test_retired_model_switches_to_working_one(monkeypatch):
     calls = []
 
-    def fake_request(path, payload=None, stream=False, timeout=60):
+    def fake_request(path, payload=None, stream=False, timeout=60, retries=1):
         if path == "/models":
             return FakeResponse(json.dumps({"data": [{"id": m} for m in
                                 ["allam-2-7b", "whisper-large-v3", "llama-3.1-8b-instant", "openai/gpt-oss-120b"]]}).encode())
