@@ -46,6 +46,12 @@ writes `models/section_predictor.joblib` and its test results to `models/section
 Restart the app and open **Section Predictor**. Without a trained model the page shows search-based
 suggestions only.
 
+**Case Analyzer:** on the same page, **Analyse my case** runs a layered pipeline: Groq understands the incident
+and rewrites it in formal court English; the trained model, BM25 search and fact rules propose sections; fact
+rules and Groq (restricted to those candidates) decide applies / depends / ruled out; the BNSS First Schedule
+gives punishment and bail; and the user gets rights and remedies for their side (accused or complainant).
+`python -m ml.evaluate_case_pipeline` compares model-only, Groq-only and hybrid on IL-TUR test cases.
+
 **Running the tests:** `pip install -r requirements-dev.txt`, then `python -m pytest`. The tests use a
 temporary database and never call Groq, so they don't touch your data or your API quota. GitHub Actions runs
 them on Linux and Windows for every pull request.

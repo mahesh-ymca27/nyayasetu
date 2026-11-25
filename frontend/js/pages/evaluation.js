@@ -75,6 +75,20 @@ export async function render(el) {
         </tbody></table></div>
         <div class="card-sub mt">Threshold tuning on the dev set (macro-F1 by decision threshold)</div><div id="thr"></div>`;
       el.appendChild(box);
+      const pe = s.pipeline_eval;
+      const cmp = document.createElement("div");
+      cmp.className = "card mt";
+      if (pe) {
+        const names = { model: "Trained model only", groq: `Groq only (${pe.groq_model})`, hybrid: "Hybrid: model proposes, Groq chooses" };
+        cmp.innerHTML = `<div class="card-head"><div><div class="card-title">${icon("layers")} Why the model matters: model vs Groq vs hybrid</div>
+          <div class="card-sub">${pe.cases} random IL-TUR test cases with known answers (seed ${pe.seed}); the model's top-${pe.candidates_k} candidates contain ${pct(pe.candidate_recall)} of the correct sections</div></div></div>
+          <div class="table-wrap"><table><thead><tr><th>Method</th><th>Precision</th><th>Recall</th><th>F1</th><th>Micro-F1</th><th>Sections per case</th><th>Not a real IPC section</th></tr></thead><tbody>
+          ${["model", "groq", "hybrid"].map((k) => { const m = pe.methods[k]; return `<tr${k === "hybrid" ? ' style="background:rgba(255,153,51,.07)"' : ""}><td><b>${esc(names[k])}</b></td><td>${pct(m.precision)}</td><td>${pct(m.recall)}</td><td>${pct(m.f1)}</td><td>${pct(m.micro_f1)}</td><td>${m.sections_per_case}</td><td>${m.not_a_real_ipc_section}</td></tr>`; }).join("")}
+          </tbody></table></div><div class="faint mt" style="font-size:12px">Example-based scores averaged over cases. Facts were cut to ${pe.facts_chars} characters for Groq. Evaluated ${esc(pe.evaluated_at)}.</div>`;
+      } else {
+        cmp.innerHTML = `<div class="card-title">${icon("layers")} Model vs Groq vs hybrid</div><div class="muted mt" style="font-size:12.5px">Not run yet. Run <span class="mono">python -m ml.evaluate_case_pipeline</span> (needs the Groq key).</div>`;
+      }
+      el.appendChild(cmp);
       groupedBars(box.querySelector("#thr"), m.threshold_curve.filter((_, i) => i % 2 === 0).map((c) => ({ label: String(c.threshold), values: { macro: c.macro_f1, micro: c.micro_f1 } })),
         [{ key: "macro", label: "Macro-F1", color: "#ff9933" }, { key: "micro", label: "Micro-F1", color: "#8b5cf6" }], { height: 200 });
       return;
