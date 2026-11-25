@@ -1,0 +1,189 @@
+"""Generates a 5-page FICTIONAL FIR (PDF + TXT) for testing the Document Analyzer.
+
+All names, numbers, addresses and accounts are invented. Output:
+    frontend/samples/test_fir_5page.pdf
+    frontend/samples/test_fir_5page.txt
+"""
+import textwrap
+from pathlib import Path
+
+import make_sample_pdf as pdf
+
+OUT = Path(__file__).resolve().parent.parent / "frontend" / "samples"
+
+PAGES = [
+    [
+        ("H", "FIRST INFORMATION REPORT"),
+        ("", "(Under Section 173 of the Bharatiya Nagarik Suraksha Sanhita, 2023)"),
+        ("S", "FICTIONAL SAMPLE FOR TESTING - ALL NAMES, NUMBERS AND PLACES ARE INVENTED"),
+        ("", ""),
+        ("B", "1. District: Pune City    P.S. Shivajinagar    Year: 2025    FIR No. 0738/2025"),
+        ("", "Date and time of FIR: 14/08/2025 at 16:20 hrs"),
+        ("", ""),
+        ("B", "2. Acts and Sections"),
+        ("", "(i) Bharatiya Nyaya Sanhita, 2023: Sections 318(4), 319(2), 336(3), 340(2), 61(2) and 3(5)"),
+        ("", "(ii) Information Technology Act, 2000: Sections 66C and 66D"),
+        ("", ""),
+        ("B", "3. Occurrence of offence"),
+        ("", "(a) Day: Monday to Friday    Date from: 04/08/2025    Date to: 08/08/2025"),
+        ("", "(b) Information received at P.S.: 14/08/2025 at 15:45 hrs    General Diary Entry No. 27"),
+        ("", "(c) Type of information: Written complaint, also registered on the National Cyber Crime Reporting Portal"),
+        ("", "    (Acknowledgement No. 31208250045672)"),
+        ("", ""),
+        ("B", "4. Place of occurrence"),
+        ("", "(a) Distance and direction from P.S.: about 3 km, north-west"),
+        ("", "(b) Address: Flat 402, Sai Krupa Residency, Model Colony, Pune 411016 (residence of complainant)"),
+        ("", "(c) The offence was committed through phone calls and online banking; the accused were outside the"),
+        ("", "    limits of this police station."),
+        ("", ""),
+        ("B", "5. Complainant / Informant"),
+        ("", "(a) Name: Smt. Kavita Suresh Deshpande    (b) Father's/Husband's name: Suresh Deshpande"),
+        ("", "(c) Date of birth: 11/02/1967    (d) Nationality: Indian    (e) Occupation: Retired school teacher"),
+        ("", "(f) Address: Flat 402, Sai Krupa Residency, Model Colony, Pune 411016"),
+        ("", "(g) Mobile: 9000012345    Email: kavita.deshpande@example.com"),
+        ("", ""),
+        ("B", "6. Details of known / suspected / unknown accused"),
+        ("", "(i) Unknown person who called from mobile 7000054321, posing as 'Inspector Rahul Verma, CBI Mumbai'"),
+        ("", "(ii) Unknown person who called from 8000067890, posing as a bank KYC officer"),
+        ("", "(iii) Holder of bank account no. XXXX4471 (Mule account, name shown as 'Rohit Kale')"),
+        ("", "(iv) Holder of bank account no. XXXX9032 (name shown as 'Sameer Traders')"),
+    ],
+    [
+        ("B", "7. Reasons for delay in reporting"),
+        ("", "The complainant was told by the callers that she was under 'digital arrest' and must not speak to anyone."),
+        ("", "She informed her son on 13/08/2025, who brought her to the police station on 14/08/2025."),
+        ("", ""),
+        ("B", "8. Particulars of properties stolen / involved"),
+        ("", "Total amount transferred: Rs. 18,45,000 (Rupees Eighteen Lakh Forty-Five Thousand only)"),
+        ("", "(i) 04/08/2025: Rs. 2,50,000 by RTGS to account XXXX4471"),
+        ("", "(ii) 05/08/2025: Rs. 4,95,000 by RTGS to account XXXX4471"),
+        ("", "(iii) 06/08/2025: Rs. 6,00,000 after breaking a fixed deposit, to account XXXX9032"),
+        ("", "(iv) 08/08/2025: Rs. 5,00,000 by IMPS and UPI in several transactions to account XXXX9032"),
+        ("", ""),
+        ("B", "9. Total value of property: Rs. 18,45,000"),
+        ("", ""),
+        ("B", "10. First Information contents (statement of the complainant)"),
+        ("", "I, Kavita Suresh Deshpande, aged 58 years, state as follows. On 04/08/2025 at about 10:30 am I received"),
+        ("", "a call on my mobile 9000012345 from 8000067890. The caller said he was from my bank and that my KYC had"),
+        ("", "expired. He then said that a parcel booked in my name containing illegal drugs had been seized in Mumbai,"),
+        ("", "and transferred the call to a person who called himself Inspector Rahul Verma of the CBI."),
+        ("", ""),
+        ("", "The second caller made a video call on WhatsApp. He was wearing a police uniform and a police station"),
+        ("", "background was visible. He showed me a document on screen which looked like an arrest warrant with my"),
+        ("", "name and Aadhaar number. He said I was under 'digital arrest', that I must keep the video call on, and"),
+        ("", "that I must not tell anyone, or my son would also be arrested."),
+        ("", ""),
+        ("", "He said that to prove my innocence, all my money had to be 'verified' by the Reserve Bank and would be"),
+        ("", "returned within 48 hours. Out of fear I transferred the amounts listed above between 04/08/2025 and"),
+        ("", "08/08/2025. Each time they sent me a receipt on WhatsApp with an RBI logo, which I now understand was"),
+        ("", "fake. On 08/08/2025 they asked for Rs. 3,00,000 more. When I said I had no money left, they stopped"),
+        ("", "answering. I request that action be taken against these persons and my money be recovered."),
+    ],
+    [
+        ("B", "11. Previous history of the suspected account holder"),
+        ("", "A search on the Crime and Criminal Tracking Network and Systems (CCTNS) shows that the person"),
+        ("", "linked to account XXXX4471 was earlier booked in FIR No. 0215/2022 of P.S. Hadapsar under"),
+        ("", "Sections 420, 468, 471 and 120B of the Indian Penal Code, and under Section 66D of the Information"),
+        ("", "Technology Act. That case was registered before 1 July 2024 and continues under the repealed Code."),
+        ("", "A second case, FIR No. 0098/2023 of P.S. Kondhwa, was registered u/s 379/411 IPC."),
+        ("", ""),
+        ("B", "12. Preliminary verification"),
+        ("", "The complainant produced bank statements, screenshots of the WhatsApp chats, the call log of her mobile"),
+        ("", "phone and the fake receipts. Prima facie the information discloses commission of cognizable offences."),
+        ("", "The offences of cheating by personation, forgery of documents and use of a forged document as genuine,"),
+        ("", "committed by several persons acting in furtherance of a common intention and a criminal conspiracy, are"),
+        ("", "made out. Hence the offence is registered and taken up for investigation."),
+        ("", ""),
+        ("B", "13. Correspondence with the repealed laws (for reference)"),
+        ("", "Section 318(4) BNS corresponds to Section 420 IPC; Section 319(2) BNS to Section 419 IPC; Section 336(3)"),
+        ("", "BNS to Section 468 IPC; Section 340(2) BNS to Section 471 IPC; Section 61(2) BNS to Section 120B IPC;"),
+        ("", "and Section 3(5) BNS to Section 34 IPC. Registration of this FIR under Section 173 of the BNSS"),
+        ("", "corresponds to Section 154 Cr.P.C."),
+        ("", ""),
+        ("B", "14. Action taken"),
+        ("", "Since the above information reveals commission of offences as mentioned at item No. 2, the case is"),
+        ("", "registered and the investigation is entrusted to PSI Nitin Patil, Cyber Cell, P.S. Shivajinagar,"),
+        ("", "Badge No. 4417. A copy of the FIR has been given to the complainant free of cost under Section 173(2)"),
+        ("", "of the BNSS."),
+    ],
+    [
+        ("B", "15. Steps taken in investigation"),
+        ("", "(i) Requests sent to the banks on 14/08/2025 to freeze accounts XXXX4471 and XXXX9032. The bank has"),
+        ("", "    confirmed a lien of Rs. 6,12,500 on account XXXX9032."),
+        ("", "(ii) Call detail records and subscriber details of mobile numbers 7000054321 and 8000067890 requested"),
+        ("", "    from the service providers."),
+        ("", "(iii) The complainant's mobile phone was seized under a seizure memo in the presence of two witnesses."),
+        ("", "    The seizure was recorded by audio-video means as required by Section 105 of the BNSS."),
+        ("", "(iv) A certificate under Section 63 of the Bharatiya Sakshya Adhiniyam, 2023 will be obtained for the"),
+        ("", "    screenshots, call logs and bank statements. (Earlier this certificate was given under Section 65B"),
+        ("", "    of the Indian Evidence Act.)"),
+        ("", "(v) The statements of the complainant and her son Mr. Aditya Deshpande were recorded under Section 180"),
+        ("", "    of the BNSS. The statement of the complainant may be recorded before the Magistrate under Section"),
+        ("", "    183 of the BNSS."),
+        ("", ""),
+        ("B", "16. Arrest and notice"),
+        ("", "If the account holders are traced, the need for arrest will be examined under Section 35 of the BNSS."),
+        ("", "Where arrest is not required, a notice of appearance will be issued under Section 35(3) of the BNSS"),
+        ("", "(earlier Section 41A Cr.P.C.). Any arrested person will be produced before the Magistrate within 24"),
+        ("", "hours. Police custody, if needed, will be sought under Section 187 of the BNSS."),
+        ("", ""),
+        ("B", "17. Advice given to the complainant"),
+        ("", "The complainant was advised to call the national cyber helpline 1930 immediately in any future case,"),
+        ("", "not to share OTPs or bank details on calls, and that no police or investigating agency in India places"),
+        ("", "a person under 'digital arrest' over a video call."),
+    ],
+    [
+        ("B", "18. Signature / thumb impression of the complainant"),
+        ("", "FIR read over to the complainant, admitted to be correctly recorded and a copy given free of cost."),
+        ("", "Signed: Kavita S. Deshpande    Date: 14/08/2025"),
+        ("", ""),
+        ("B", "19. Date and time of dispatch to the court"),
+        ("", "15/08/2025 at 10:00 hrs, to the Court of the Judicial Magistrate First Class, Shivajinagar, Pune."),
+        ("", ""),
+        ("B", "20. Officer in charge"),
+        ("", "Name: PI Meenakshi Jadhav    Rank: Police Inspector    No.: 2209    P.S. Shivajinagar, Pune City"),
+        ("", "Email: ps-shivajinagar@example.gov.in    Phone: 020-25500000"),
+        ("", ""),
+        ("B", "Annexure A: List of documents received from the complainant"),
+        ("", "1. Bank statements for the period 01/08/2025 to 10/08/2025 (6 pages)"),
+        ("", "2. Fixed deposit closure advice dated 06/08/2025"),
+        ("", "3. Screenshots of WhatsApp chats and video call history (14 pages)"),
+        ("", "4. Copies of four fake 'RBI verification receipts'"),
+        ("", "5. Acknowledgement of the complaint on the National Cyber Crime Reporting Portal"),
+        ("", ""),
+        ("B", "Annexure B: Sections applied, with the corresponding repealed provisions"),
+        ("", "BNS 318(4) - Cheating and dishonestly inducing delivery of property    (IPC 420)"),
+        ("", "BNS 319(2) - Cheating by personation    (IPC 419)"),
+        ("", "BNS 336(3) - Forgery for the purpose of cheating    (IPC 468)"),
+        ("", "BNS 340(2) - Using as genuine a forged document    (IPC 471)"),
+        ("", "BNS 61(2) - Criminal conspiracy    (IPC 120B)"),
+        ("", "BNS 3(5) - Acts done by several persons in furtherance of common intention    (IPC 34)"),
+        ("", ""),
+        ("S", "This is a fictional FIR created for testing NyayaSetu. Any resemblance to real persons, accounts,"),
+        ("S", "phone numbers or cases is coincidental. It is not a legal document."),
+    ],
+]
+
+
+def check_fits() -> None:
+    """Each page must fit on A4 with the generator's font sizes (no automatic page breaks)."""
+    for n, page in enumerate(PAGES, 1):
+        height = 0.0
+        for style, text in page:
+            size, lead = {"H": (15, 22), "B": (11.5, 17), "S": (9, 14)}.get(style, (10.5, 14.5))
+            height += lead * len(textwrap.wrap(text, 95 if size <= 10.5 else 80) or [""])
+        assert height < 740, f"page {n} is too long ({height:.0f}pt)"
+
+
+if __name__ == "__main__":
+    check_fits()
+    OUT.mkdir(parents=True, exist_ok=True)
+    pdf.PAGES = PAGES
+    (OUT / "test_fir_5page.pdf").write_bytes(pdf.build())
+    txt = []
+    for n, page in enumerate(PAGES, 1):
+        txt.append(f"----- Page {n} -----")
+        txt.extend(text for _, text in page)
+        txt.append("")
+    (OUT / "test_fir_5page.txt").write_text("\n".join(txt), encoding="utf-8")
+    print("wrote", OUT / "test_fir_5page.pdf", "and", OUT / "test_fir_5page.txt")

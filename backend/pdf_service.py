@@ -30,8 +30,10 @@ DATE = re.compile(
     r"Sept|Oct|Nov|Dec)[a-z]*\.?,?\s+\d{4}|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2},?\s+\d{4})\b",
     re.IGNORECASE,
 )
-MONEY = re.compile(r"(?:₹|Rs\.?|INR)\s?\d[\d,]*(?:\.\d+)?(?:\s?(?:lakh|lakhs|crore|crores))?|\d[\d,]*\s?(?:lakh|crore)s?\b",
-                   re.IGNORECASE)
+MONEY = re.compile(
+    r"(?:₹|(?<![A-Za-z])(?:Rs\.?|INR))\s?\d{1,3}(?:,\d{2,3})*(?:\.\d+)?(?!\d)(?:\s?(?:lakh|lakhs|crore|crores)\b)?"
+    r"|(?<![\d,])\d{1,3}(?:,\d{2,3})*\s?(?:lakh|crore)s?\b",
+    re.IGNORECASE)
 PHONE = re.compile(r"(?<!\d)(?:\+91[\s-]?)?[6-9]\d{4}[\s-]?\d{5}(?!\d)")
 EMAIL = re.compile(r"\b[\w.+-]+@[\w-]+\.[\w.]+\b")
 FIR_NO = re.compile(r"\b(?:FIR|F\.I\.R\.?|Crime)\s*(?:No\.?|Number)\s*[:\-]?\s*([\w/-]{2,20})", re.IGNORECASE)
@@ -89,9 +91,24 @@ def extract_pdf(data: bytes) -> dict:
     }
 
 
+PAGE_MARKER = re.compile(r"^\s*(?:-{3,}|={3,})\s*Page\s+\d+\s*(?:-{3,}|={3,})\s*$", re.IGNORECASE | re.MULTILINE)
+
+
 def extract_text_file(data: bytes) -> dict:
-    text = data.decode("utf-8", errors="ignore")
-    chunks = [text[i:i + 3000] for i in range(0, len(text), 3000)] or [""]
+    if data[:2] in (b"\xff\xfe", b"\xfe\xff"):
+        text = data.decode("utf-16", errors="ignore")
+    else:
+        text = data.decode("utf-8-sig", errors="ignore")
+    # Keep the original pages when the file marks them: form feeds, "----- Page 3 -----",
+    # or "===== Page 3 =====" (the format of NyayaSetu's own TXT export).
+    if "\f" in text:
+        chunks = text.split("\f")
+    elif PAGE_MARKER.search(text):
+        chunks = [c.strip("\n") for c in PAGE_MARKER.split(text)]
+        chunks = [c for c in chunks if c.strip()]
+    else:
+        chunks = [text[i:i + 3000] for i in range(0, len(text), 3000)]
+    chunks = chunks or [""]
     pages = [{"page": i + 1, "text": c, "words": len(c.split()), "chars": len(c)} for i, c in enumerate(chunks)]
     return {"pages": pages, "page_count": len(pages), "metadata": {}, "scanned_pages": 0, "is_scanned": False,
             "extract_ms": 0}

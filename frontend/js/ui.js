@@ -141,9 +141,10 @@ export async function openSection(id) {
   const m = modal(`<div class="skeleton" style="height:28px;width:40%"></div><div class="skeleton mt" style="height:200px"></div>`);
   try {
     const s = await get(`/api/sections/${encodeURIComponent(id)}`);
-    const tagFor = (x) => x.source === "official" ? "tag-off" : "tag-auto";
+    const tagFor = (x) => x.source === "auto-aligned" ? "tag-auto" : "tag-off";
+    const srcLabel = (x) => x.source === "auto-aligned" ? Math.round(x.confidence * 100) + "%" : x.source;
     const rel = (list, label) => list.length ? `<div class="mt"><div class="label">${label}</div><div class="row wrap">${list.map((x) =>
-      `<span class="chip click" data-section="${esc(x.id)}"><b class="act-${esc(x.act)}">${esc(x.act)} ${esc(x.number)}</b> ${esc(x.heading).slice(0, 60)} <span class="tag ${tagFor(x)}">${x.source === "official" ? "official" : Math.round(x.confidence * 100) + "%"}</span></span>`).join("")}</div></div>` : "";
+      `<span class="chip click" data-section="${esc(x.id)}"><b class="act-${esc(x.act)}">${esc(x.act)} ${esc(x.number)}</b> ${esc(x.heading).slice(0, 60)} <span class="tag ${tagFor(x)}">${srcLabel(x)}</span></span>`).join("")}</div></div>` : "";
     m.el.innerHTML = m.el.querySelector(".modal-close").outerHTML + `
       <div class="row" style="gap:8px"><span class="tag ${s.era === "new" ? "tag-new" : "tag-old"}">${s.era === "new" ? "IN FORCE · 2023 CODE" : "REPEALED · 1 JULY 2024"}</span><span class="faint">${esc(s.act_name)}, ${s.act_year}</span></div>
       <h2 style="margin:10px 0 4px;letter-spacing:-.02em"><span class="act-${esc(s.act)}">${esc(s.act)} ${esc(s.number)}</span> · ${esc(s.heading)}</h2>
