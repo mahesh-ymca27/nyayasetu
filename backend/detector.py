@@ -30,6 +30,8 @@ ACT_FIRST = re.compile(rf"\b{ACT_PATTERN}\s*(?:section|sec\.?|s\.)?\s*(?P<nums>{
 NUM_FIRST = re.compile(rf"\b(?P<nums>{NUM})\s+(?:of\s+)?(?:the\s+)?{ACT_PATTERN}", re.IGNORECASE)
 
 HINDI_ACTS = {"आईपीसी": "IPC", "बीएनएस": "BNS", "सीआरपीसी": "CrPC"}
+NEXT_ACT = re.compile(rf"\s*(?:of\s+)?(?:the\s+)?{ACT_PATTERN}", re.IGNORECASE)
+SEPARATOR = re.compile(r"\s*(?:,|/|&|\band\b|\bor\b|r/w|read\s+with)\s*", re.IGNORECASE)
 
 # Judgments define a short name once ("Code of Criminal Procedure, 1973 (in short 'the Code')")
 # and then write "Section 154 of the Code" for the rest of the document.
@@ -169,8 +171,17 @@ def detect_references(text: str, default_act: str | None = None, code_act: str |
                 act = _act_code(am.group("act")) if am else None
             if not act and not default_act:
                 continue
-            spans.append((m.start(), m.end()))
-            add(act, m.group("nums"), m.start(), m.end(), m.group(0))
+            nums, end = m.group("nums"), m.end()
+            if pattern is ACT_FIRST:
+                # "IPC 498A and 154 CrPC": the last number belongs to the act named right after it.
+                if NEXT_ACT.match(text, end):
+                    cut = list(SEPARATOR.finditer(nums))
+                    if not cut:
+                        continue  # "IPC 154 CrPC" is ambiguous; let NUM_FIRST read "154 CrPC"
+                    nums = nums[:cut[-1].start()]
+                    end = m.start("nums") + cut[-1].start()
+            spans.append((m.start(), end))
+            add(act, nums, m.start(), end, text[m.start():end])
     return sorted(found.values(), key=lambda r: r["start"])
 
 

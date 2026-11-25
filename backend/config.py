@@ -48,8 +48,16 @@ def _load_dotenv(path: Path | None) -> None:
 
 ENV_FILE = _find_env_file()
 _load_dotenv(ENV_FILE)
-STORAGE_DIR.mkdir(exist_ok=True)
+
+# NYAYASETU_STORAGE moves the database and uploads elsewhere (the test suite uses a temp folder).
+if os.environ.get("NYAYASETU_STORAGE"):
+    STORAGE_DIR = Path(os.environ["NYAYASETU_STORAGE"])
+    UPLOAD_DIR = STORAGE_DIR / "uploads"
+STORAGE_DIR.mkdir(parents=True, exist_ok=True)
 UPLOAD_DIR.mkdir(exist_ok=True)
+
+# NYAYASETU_OFFLINE=1 ignores any Groq key, so tests never call the real API.
+OFFLINE = os.environ.get("NYAYASETU_OFFLINE") == "1"
 
 
 def _secret_key() -> str:
@@ -62,7 +70,7 @@ def _secret_key() -> str:
 
 
 class Settings:
-    groq_api_key: str = os.environ.get("GROQ_API_KEY", "").strip().strip('"').strip("'")
+    groq_api_key: str = "" if OFFLINE else os.environ.get("GROQ_API_KEY", "").strip().strip('"').strip("'")
     groq_model: str = os.environ.get("GROQ_MODEL", "openai/gpt-oss-120b")
     groq_base_url: str = os.environ.get("GROQ_BASE_URL", "https://api.groq.com/openai/v1")
     secret_key: str = _secret_key()
