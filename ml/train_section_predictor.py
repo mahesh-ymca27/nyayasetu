@@ -136,6 +136,13 @@ def preview(splits: dict, lookup: dict[str, str]) -> None:
     if lookup:
         sample = list(lookup.items())[:3]
         print(f"  statutes table: {len(lookup)} ID entries, e.g. {sample}")
+        read = [section_model.normalize_label(n) for n in dict.fromkeys(lookup.values())]
+        print(f"  {len(set(read))} distinct sections read from {len(read)} statute names")
+        clashes = Counter(read)
+        for sec, n in clashes.items():
+            if n > 1:
+                names = [v for v in dict.fromkeys(lookup.values()) if section_model.normalize_label(v) == sec]
+                print(f"    WARNING: {names} are all read as IPC {sec}")
 
 
 def main() -> None:

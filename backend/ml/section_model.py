@@ -14,15 +14,16 @@ import re
 import time
 from typing import Iterable
 
-LABEL_NUMBER = re.compile(r"(\d{1,3}[A-Za-z]{0,2})")
+LABEL_NUMBER = re.compile(r"(?<!\d)(\d{1,4})(?:\s*[-‐–]?\s*([A-Za-z]{1,2}))?(?![A-Za-z\d])")
 
 
 def normalize_label(label: str) -> str | None:
-    """'Section 302', 'IPC_302', 'Indian Penal Code, 1860_Section 120B', '302' -> '302' / '120B'.
+    """'Section 302', 'IPC_302', 'Section 120-B', 'Section 498 A', '1860_Section 34' -> '302', '302', '120B', '498A', '34'.
 
-    Takes the last number in the string (labels may contain the act's year, e.g. 1860)."""
-    found = [m for m in LABEL_NUMBER.findall(str(label)) if not (len(m) == 4 and m.isdigit())]
-    return found[-1].upper() if found else None
+    Takes the last section number in the string; 4-digit numbers are years (e.g. 1860), not sections."""
+    text = re.sub(r"\([^)]*\)", " ", str(label))  # drop sub-sections: "376(2)" -> "376"
+    found = [(n + s).upper() for n, s in LABEL_NUMBER.findall(text) if len(n) <= 3]
+    return found[-1] if found else None
 
 
 def join_text(text) -> str:
