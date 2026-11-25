@@ -6,7 +6,7 @@ import re
 import time
 from collections import Counter
 
-from .detector import detect_references
+from .detector import detect_references, infer_code_act
 from .search import STOP, tokenize
 
 DOC_TYPES = {
@@ -126,11 +126,13 @@ def analyze(extraction: dict) -> dict:
     pages = extraction["pages"]
     full = "\n".join(p["text"] for p in pages)
     words = full.split()
+    # Which act does "the Code" mean in this document? (Judgments say "Section 154 of the Code".)
+    code_act = infer_code_act(full, detect_references(full[:60000]))
     refs = []
     highlights: dict[int, list[dict]] = {}
     for p in pages:
         spans: dict[tuple[int, int], list[str]] = {}
-        for r in detect_references(p["text"]):
+        for r in detect_references(p["text"], code_act=code_act):
             r["page"] = p["page"]
             for span in r.pop("spans"):
                 spans.setdefault(tuple(span), []).append(r["section_id"])
@@ -179,6 +181,7 @@ def analyze(extraction: dict) -> dict:
         "keywords": keywords,
         "words_per_page": [{"page": p["page"], "words": p["words"]} for p in pages],
         "highlights": highlights,
+        "code_act": code_act,
     }
 
 

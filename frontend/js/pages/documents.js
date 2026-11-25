@@ -144,7 +144,7 @@ function overview() {
     <div class="card">
       <div class="card-head"><div><div class="card-title">${icon("scale")} Legal references detected</div><div class="card-sub">Old-code references are converted to BNS / BNSS / BSA automatically</div></div></div>
       ${a.references.length ? `<div class="table-wrap"><table><thead><tr><th>Reference</th><th>Heading</th><th>2023 equivalent</th><th>Pages</th><th>×</th></tr></thead><tbody>
-      ${a.references.map((r) => `<tr><td><span class="link" data-section="${esc(r.section_id)}">${esc(r.label)}</span> ${r.era === "old" ? '<span class="tag tag-old">old</span>' : '<span class="tag tag-new">new</span>'}</td>
+      ${a.references.map((r) => `<tr><td><span class="link" data-section="${esc(r.section_id)}">${esc(r.label)}</span> ${r.era === "old" ? '<span class="tag tag-old">old</span>' : '<span class="tag tag-new">new</span>'}${r.inferred ? ` <span class="tag tag-auto" title="Written as 'of the Code'; this document defines the Code as ${esc(a.code_act)}">"the Code"</span>` : ""}</td>
         <td>${esc(r.heading || "Not in corpus")}</td>
         <td>${r.converted.length ? r.converted.map((c) => `<span class="link" data-section="${esc(c.id)}">${esc(c.act)} ${esc(c.number)}</span>`).join(", ") : r.previous?.length ? `<span class="faint">was ${r.previous.map((p) => esc(p.act + " " + p.number)).join(", ")}</span>` : "-"}</td>
         <td class="mono">${r.pages.join(", ")}</td><td>${r.count}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty">${icon("info")}<div>No statutory references found in this document.</div></div>`}

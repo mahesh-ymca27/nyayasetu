@@ -31,6 +31,38 @@ NUM_FIRST = re.compile(rf"\b(?P<nums>{NUM})\s+(?:of\s+)?(?:the\s+)?{ACT_PATTERN}
 
 HINDI_ACTS = {"आईपीसी": "IPC", "बीएनएस": "BNS", "सीआरपीसी": "CrPC"}
 
+# Judgments define a short name once ("Code of Criminal Procedure, 1973 (in short 'the Code')")
+# and then write "Section 154 of the Code" for the rest of the document.
+OF_THE_CODE = re.compile(
+    rf"(?:\bu/s\.?|\bsections?|\bsecs?\.?|\bss?\.)\s*(?P<nums>{NUM_LIST})\s*,?\s*of\s+the\s+(?:said\s+)?(?:Code|Sanhita)\b(?!\s+of)",
+    re.IGNORECASE,
+)
+CODE_DEFINITION = re.compile(
+    rf"{ACT_PATTERN}[^()]{{0,25}}\((?:[^()]{{0,40}})[\"'‘“]\s*(?:the\s+)?(?:Code|Sanhita)\s*[\"'’”]",
+    re.IGNORECASE,
+)
+
+
+def infer_code_act(text: str, refs: list[dict] | None = None) -> str | None:
+    """Works out which act 'the Code' means in a document."""
+    m = CODE_DEFINITION.search(text)
+    if m:
+        act = _act_code(m.group("act"))
+        if act:
+            return act
+    counts: dict[str, int] = {}
+    for r in refs or []:
+        if r["act"] in ("CrPC", "IPC", "BNSS", "BNS"):
+            counts[r["act"]] = counts.get(r["act"], 0) + r["count"]
+    if not counts:
+        lowered = text.lower()
+        if "criminal procedure" in lowered or "cr.p.c" in lowered or "crpc" in lowered:
+            return "CrPC"
+        if "penal code" in lowered:
+            return "IPC"
+        return None
+    return max(counts, key=counts.get)
+
 
 def _act_code(raw: str | None) -> str | None:
     if not raw:
@@ -74,43 +106,56 @@ def reverse(act: str, number: str) -> list[dict]:
     return out
 
 
-def detect_references(text: str, default_act: str | None = None) -> list[dict]:
-    """Returns unique references found in text, each resolved against the corpus."""
+def _add_refs(found: dict, corpus, act: str, nums: str, start: int, end: int, raw: str,
+              inferred: bool = False) -> None:
+    for n in _split_nums(nums):
+        number = norm_number(n)
+        if not number or not number[0].isdigit():
+            continue
+        sid = f"{act}-{number}"
+        sec = corpus.by_id.get(sid)
+        if sid in found:
+            if (start, end) not in found[sid]["spans"]:
+                found[sid]["count"] += 1
+                found[sid]["spans"].append((start, end))
+            continue
+        found[sid] = {
+            "section_id": sid,
+            "act": act,
+            "number": number,
+            "label": f"{act} {n.strip()}",
+            "heading": sec["heading"] if sec else None,
+            "exists": sec is not None,
+            "era": "old" if act in OLD_TO_NEW else "new",
+            "converted": convert(act, number),
+            "previous": reverse(act, number) if act not in OLD_TO_NEW else [],
+            "raw": raw.strip(),
+            "inferred": inferred,
+            "start": start,
+            "end": end,
+            "spans": [(start, end)],
+            "count": 1,
+        }
+
+
+def detect_references(text: str, default_act: str | None = None, code_act: str | None = None) -> list[dict]:
+    """Returns unique references found in text, each resolved against the corpus.
+
+    code_act: the act that "the Code" refers to in this document (see infer_code_act).
+    """
     corpus = get_corpus()
     found: dict[str, dict] = {}
     spans: list[tuple[int, int]] = []
 
+    if code_act:
+        for m in OF_THE_CODE.finditer(text):
+            spans.append((m.start(), m.end()))
+            _add_refs(found, corpus, code_act, m.group("nums"), m.start(), m.end(), m.group(0), inferred=True)
+
     def add(act: str | None, nums: str, start: int, end: int, raw: str) -> None:
         act = act or default_act
-        if not act:
-            return
-        for n in _split_nums(nums):
-            number = norm_number(n)
-            if not number or not number[0].isdigit():
-                continue
-            sid = f"{act}-{number}"
-            sec = corpus.by_id.get(sid)
-            if sid in found:
-                if (start, end) not in found[sid]["spans"]:
-                    found[sid]["count"] += 1
-                    found[sid]["spans"].append((start, end))
-                continue
-            found[sid] = {
-                "section_id": sid,
-                "act": act,
-                "number": number,
-                "label": f"{act} {n.strip()}",
-                "heading": sec["heading"] if sec else None,
-                "exists": sec is not None,
-                "era": "old" if act in OLD_TO_NEW else "new",
-                "converted": convert(act, number),
-                "previous": reverse(act, number) if act not in OLD_TO_NEW else [],
-                "raw": raw.strip(),
-                "start": start,
-                "end": end,
-                "spans": [(start, end)],
-                "count": 1,
-            }
+        if act:
+            _add_refs(found, corpus, act, nums, start, end, raw)
 
     for pattern in (FORWARD, ACT_FIRST, NUM_FIRST):
         for m in pattern.finditer(text):

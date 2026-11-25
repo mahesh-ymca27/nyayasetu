@@ -151,13 +151,15 @@ def summarize_document(text: str, refs: list[dict], doc_type: str) -> dict:
         f"{r['label']} ({r['heading'] or 'unknown'})" + (" -> " + ", ".join(c['id'] for c in r['converted']) if r['converted'] else "")
         for r in refs[:25]
     )
+    excerpt, coverage = select_excerpts(text)
     prompt = (
         f"Document type (detected): {doc_type}\nLegal references found: {ref_lines or 'none'}\n\n"
-        f"Document text (may be truncated):\n{text[:12000]}\n\n"
+        f"Document text ({coverage}):\n{excerpt}\n\n"
         "Return a JSON object with keys: title (string), summary (3-5 sentences), parties (list of strings), "
         "key_facts (list of up to 6 strings), timeline (list of {date, event}), offences (list of "
         "{old_section, new_section, description}), next_steps (list of up to 4 strings for the citizen), "
-        "risk_level ('low'|'medium'|'high'). Use the 2023 codes (BNS/BNSS/BSA) for new_section."
+        "risk_level ('low'|'medium'|'high'). Use the 2023 codes (BNS/BNSS/BSA) for new_section. "
+        "For a court judgment, the summary must state the court's final holding and any directions."
     )
     try:
         raw = llm.chat([{"role": "system", "content": "You analyse Indian legal documents. Output valid JSON only."},
@@ -169,6 +171,30 @@ def summarize_document(text: str, refs: list[dict], doc_type: str) -> dict:
         return {"mode": "offline", "error": str(e), **extractive_summary(text)}
 
 
+SECTION_HINT = re.compile(r"\b(?:section|sections|u/s|s\.)\s*\d", re.IGNORECASE)
+CONCLUSION_HINT = re.compile(r"\b(?:held|direct|directions|conclusion|accordingly|dismissed|allowed|we hold|"
+                             r"in view of the above|ordered)\b", re.IGNORECASE)
+
+
+def select_excerpts(text: str, budget: int = 12000) -> tuple[str, str]:
+    """Picks what a long document's summary should see: the opening (facts, parties), the end
+    (judgments put their conclusions and directions last) and the middle passages that cite
+    the most sections or state holdings. Short documents are sent whole."""
+    text = re.sub(r"[ \t]+", " ", text)
+    if len(text) <= budget:
+        return text, "complete"
+    head, tail = text[:3500], text[-3500:]
+    middle = text[3500:-3500]
+    size = 1200
+    blocks = [middle[i:i + size] for i in range(0, len(middle), size)]
+    scored = sorted(range(len(blocks)),
+                    key=lambda i: -(len(SECTION_HINT.findall(blocks[i])) * 2 + len(CONCLUSION_HINT.findall(blocks[i]))))
+    keep = sorted(scored[: max(1, (budget - 7000) // size)])
+    parts = [head] + [f"[... {blocks[i]} ...]" for i in keep] + [tail]
+    pct = round(100 * (7000 + len(keep) * size) / len(text))
+    return "\n\n".join(parts), f"long document: opening, conclusion and key passages, about {pct}% of the text"
+
+
 def extractive_summary(text: str, n: int = 4) -> dict:
     """Frequency-based sentence scoring (fallback when no LLM is configured)."""
     from collections import Counter
@@ -177,6 +203,8 @@ def extractive_summary(text: str, n: int = 4) -> dict:
 
     flat = re.sub(r"\s+", " ", text)
     sentences = [s.strip() for s in re.split(r"(?<=[.!?।])\s+(?=[A-Z\u0900-\u097F(])", flat) if 40 <= len(s.strip()) <= 400]
+    if len(sentences) > 3000:  # very long documents: keep scoring fast
+        sentences = sentences[:1500] + sentences[-1500:]
     if not sentences:
         return {"summary": text[:500], "key_facts": []}
     freq = Counter(t for s in sentences for t in analyze(s))

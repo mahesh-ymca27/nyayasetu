@@ -118,7 +118,7 @@ class ModelIn(BaseModel):
 
 @app.post("/api/llm/model", tags=["system"])
 def set_model(body: ModelIn, user: dict = Depends(current_user)):
-    settings.groq_model = body.model.strip()
+    llm.save_model(body.model.strip())
     db.log_activity(user["id"], "settings", f"AI model set to {settings.groq_model}")
     return {"current": settings.groq_model}
 

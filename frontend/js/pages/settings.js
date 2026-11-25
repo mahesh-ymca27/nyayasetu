@@ -41,8 +41,10 @@ async function status() {
   const box = $("#llm-status");
   box.innerHTML = `<div class="row"><span class="spinner dark"></span> Contacting Groq…</div>`;
   const s = await get("/api/llm/status");
+  if (s.switched_from) { toast(`${s.switched_from} is retired on Groq. Switched to ${s.model}.`, "info", 6000); models(); refreshStatus(); }
   box.innerHTML = s.ok
-    ? `<div class="row"><span class="status-dot ok"></span><b>Connected</b><span class="chip">${esc(s.model)}</span><span class="chip">${s.latency_ms} ms</span></div>`
+    ? `<div class="row"><span class="status-dot ok"></span><b>Connected</b><span class="chip">${esc(s.model)}</span><span class="chip">${s.latency_ms} ms</span></div>
+       ${s.switched_from ? `<div class="muted" style="font-size:12.5px">${esc(s.switched_from)} is no longer available, so NyayaSetu switched to ${esc(s.model)} and saved it.</div>` : ""}`
     : `<div class="row"><span class="status-dot"></span><b>${s.configured ? "Connection problem" : "Offline mode"}</b></div><div class="muted" style="font-size:12.5px">${esc(s.message || "")}</div>
        ${s.configured ? "" : `<div class="converted-text mono" style="min-height:0;font-size:12px">1. Get a free key at console.groq.com/keys\n2. Create a file named .env next to run.py:\n   GROQ_API_KEY=gsk_your_key_here\n3. Restart: python run.py</div>`}`;
 }
