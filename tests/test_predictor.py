@@ -10,6 +10,8 @@ from ml.train_section_predictor import to_examples
 @pytest.mark.parametrize("raw, expected", [
     ("Section 302", "302"), ("IPC_420", "420"), ("120B", "120B"), ("Section 498A", "498A"),
     ("Indian Penal Code, 1860_Section 34", "34"), ("no number", None),
+    ("Section 120-B", "120B"), ("Section 304 B", "304B"), ("Section 304–A", "304A"), ("Section 2", "2"),
+    ("Section 376(2)", "376"), ("IPC 498a", "498A"),
 ])
 def test_normalize_label(raw, expected):
     assert section_model.normalize_label(raw) == expected
