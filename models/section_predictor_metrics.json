@@ -1,0 +1,194 @@
+{
+ "model": "TF-IDF (1-2 grams) + one-vs-rest logistic regression, class-weighted",
+ "dataset": "Exploration-Lab/IL-TUR (LSI)",
+ "quick_run": false,
+ "train_cases": 42750,
+ "dev_cases": 10181,
+ "test_cases": 13019,
+ "sections": 98,
+ "features": 60000,
+ "hyperparameters": {
+  "C": 4.0,
+  "max_features": 60000,
+  "ngram_range": [
+   1,
+   2
+  ]
+ },
+ "threshold": 0.6,
+ "threshold_curve": [
+  {
+   "threshold": 0.05,
+   "macro_f1": 0.1688,
+   "micro_f1": 0.2082
+  },
+  {
+   "threshold": 0.1,
+   "macro_f1": 0.2257,
+   "micro_f1": 0.2777
+  },
+  {
+   "threshold": 0.15,
+   "macro_f1": 0.267,
+   "micro_f1": 0.327
+  },
+  {
+   "threshold": 0.2,
+   "macro_f1": 0.2986,
+   "micro_f1": 0.3652
+  },
+  {
+   "threshold": 0.25,
+   "macro_f1": 0.3227,
+   "micro_f1": 0.3954
+  },
+  {
+   "threshold": 0.3,
+   "macro_f1": 0.3429,
+   "micro_f1": 0.4205
+  },
+  {
+   "threshold": 0.35,
+   "macro_f1": 0.3591,
+   "micro_f1": 0.4414
+  },
+  {
+   "threshold": 0.4,
+   "macro_f1": 0.3723,
+   "micro_f1": 0.4579
+  },
+  {
+   "threshold": 0.45,
+   "macro_f1": 0.3815,
+   "micro_f1": 0.4706
+  },
+  {
+   "threshold": 0.5,
+   "macro_f1": 0.3899,
+   "micro_f1": 0.4815
+  },
+  {
+   "threshold": 0.55,
+   "macro_f1": 0.3951,
+   "micro_f1": 0.4886
+  },
+  {
+   "threshold": 0.6,
+   "macro_f1": 0.3966,
+   "micro_f1": 0.4921
+  },
+  {
+   "threshold": 0.65,
+   "macro_f1": 0.3958,
+   "micro_f1": 0.4922
+  },
+  {
+   "threshold": 0.7,
+   "macro_f1": 0.3936,
+   "micro_f1": 0.4879
+  },
+  {
+   "threshold": 0.75,
+   "macro_f1": 0.386,
+   "micro_f1": 0.4768
+  },
+  {
+   "threshold": 0.8,
+   "macro_f1": 0.375,
+   "micro_f1": 0.4595
+  },
+  {
+   "threshold": 0.85,
+   "macro_f1": 0.3561,
+   "micro_f1": 0.4328
+  },
+  {
+   "threshold": 0.9,
+   "macro_f1": 0.3274,
+   "micro_f1": 0.3932
+  },
+  {
+   "threshold": 0.95,
+   "macro_f1": 0.2798,
+   "micro_f1": 0.3348
+  }
+ ],
+ "test": {
+  "documents": 13019,
+  "macro_f1": 0.3995,
+  "micro_f1": 0.4916,
+  "precision_at_1": 0.6437,
+  "hit_at_3": 0.8184,
+  "recall_at_5": 0.5738
+ },
+ "reference": {
+  "name": "IL-TUR paper LSI baseline (macro-F1)",
+  "macro_f1": 0.2808
+ },
+ "train_seconds": 431,
+ "model_size_mb": 21.5,
+ "trained_on": "Intel64 Family 6 Model 154 Stepping 4, GenuineIntel, Python 3.12.10, scikit-learn 1.9.1",
+ "trained_at": "2026-11-25 15:24",
+ "top_sections": [
+  {
+   "ipc": "34",
+   "train_cases": 11730
+  },
+  {
+   "ipc": "302",
+   "train_cases": 10380
+  },
+  {
+   "ipc": "506",
+   "train_cases": 7880
+  },
+  {
+   "ipc": "323",
+   "train_cases": 7728
+  },
+  {
+   "ipc": "307",
+   "train_cases": 7120
+  },
+  {
+   "ipc": "147",
+   "train_cases": 4324
+  },
+  {
+   "ipc": "148",
+   "train_cases": 4136
+  },
+  {
+   "ipc": "120B",
+   "train_cases": 4134
+  },
+  {
+   "ipc": "294",
+   "train_cases": 4096
+  },
+  {
+   "ipc": "420",
+   "train_cases": 4046
+  },
+  {
+   "ipc": "376",
+   "train_cases": 3988
+  },
+  {
+   "ipc": "498A",
+   "train_cases": 3835
+  },
+  {
+   "ipc": "149",
+   "train_cases": 3818
+  },
+  {
+   "ipc": "324",
+   "train_cases": 3660
+  },
+  {
+   "ipc": "341",
+   "train_cases": 3184
+  }
+ ]
+}
