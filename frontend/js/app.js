@@ -15,7 +15,7 @@ const ROUTES = {
   dashboard: { page: dashboard, title: "Dashboard", crumb: "Overview of the legal corpus and your activity", icon: "dashboard", group: "Workspace" },
   assistant: { page: assistant, title: "AI Legal Assistant", crumb: "Ask in English, Hindi or Hinglish. Answers cite the exact section", icon: "chat", group: "Workspace", badge: "AI" },
   converter: { page: converter, title: "IPC → BNS Converter", crumb: "Old section numbers to the 2023 codes, with a word-level diff", icon: "swap", group: "Workspace" },
-  predictor: { page: predictorPage, title: "Section Predictor", crumb: "Describe an incident; a trained ML model suggests the sections that may apply", icon: "target", group: "Workspace", badge: "ML" },
+  predictor: { page: predictorPage, title: "Case Analyzer", crumb: "Describe an incident: likely charges, how serious they are, and your options (trained model + rules + Groq)", icon: "target", group: "Workspace", badge: "ML" },
   documents: { page: documents, title: "Document Analyzer", crumb: "Extract text from FIRs, judgments and notices; detect and convert sections", icon: "file", group: "Workspace", badge: "PDF" },
   library: { page: library, title: "Law Library", crumb: "Browse all 2,354 sections of the six criminal codes", icon: "book", group: "Explore" },
   graph: { page: graphPage, title: "Knowledge Graph", crumb: "How the old codes map onto BNS, BNSS and BSA", icon: "graph", group: "Explore" },

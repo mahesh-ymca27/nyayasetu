@@ -141,6 +141,45 @@ def chat(messages: list[dict], temperature: float = 0.2, max_tokens: int = 1200,
     return THINK.sub("", content).strip()
 
 
+JSON_OBJECT = re.compile(r"\{.*\}", re.DOTALL)
+
+
+def parse_json(text: str) -> dict:
+    """Parses a JSON object from a model reply, tolerating ```json fences or text around it."""
+    text = (text or "").strip()
+    try:
+        return json.loads(text)
+    except ValueError:
+        m = JSON_OBJECT.search(text)
+        if m:
+            return json.loads(m.group(0))
+        raise
+
+
+def chat_json(messages: list[dict], max_tokens: int = 1500, temperature: float = 0.1, retries: int = 3) -> dict:
+    """Chat call that must return a JSON object. Uses JSON mode when the model supports it, and waits
+    and retries when Groq's free-tier rate limit (HTTP 429) is hit."""
+    use_json_mode = True
+    for attempt in range(retries + 1):
+        try:
+            raw = chat(messages, temperature=temperature, max_tokens=max_tokens, json_mode=use_json_mode)
+            return parse_json(raw)
+        except LLMError as e:
+            msg = str(e)
+            if use_json_mode and ("response_format" in msg or "json" in msg.lower()) and "429" not in msg:
+                use_json_mode = False  # model without JSON mode: ask in the prompt only
+                continue
+            if "429" in msg and attempt < retries:
+                time.sleep(min(60, 8 * (attempt + 1)))
+                continue
+            raise
+        except ValueError as e:
+            if attempt < retries:
+                continue
+            raise LLMError(f"The AI reply was not valid JSON: {e}") from e
+    raise LLMError("No reply from Groq")
+
+
 def stream_chat(messages: list[dict], temperature: float = 0.2, max_tokens: int = 1400,
                 model: str | None = None, _retry: bool = True) -> Iterator[str]:
     payload = _payload(messages, temperature, max_tokens, model, stream=True)

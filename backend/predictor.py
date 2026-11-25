@@ -53,6 +53,16 @@ def metrics() -> dict | None:
         return None
 
 
+def pipeline_eval() -> dict | None:
+    """Model vs Groq vs hybrid comparison written by ml/evaluate_case_pipeline.py (without per-case rows)."""
+    try:
+        data = json.loads((MODELS_DIR / "case_pipeline_eval.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    data.pop("rows", None)
+    return data
+
+
 def status() -> dict:
     model, _ = _load()
     messages = {
@@ -67,6 +77,7 @@ def status() -> dict:
         "labels": len(model["labels"]) if model else 0,
         "threshold": model.get("threshold") if model else None,
         "metrics": metrics(),
+        "pipeline_eval": pipeline_eval(),
     }
 
 

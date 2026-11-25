@@ -14,7 +14,7 @@ from fastapi.responses import JSONResponse, PlainTextResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import db, graph, llm, pdf_service, predictor, rag
+from . import case_analyzer, db, graph, llm, pdf_service, predictor, rag
 from .config import FRONTEND_DIR, settings
 from .corpus import OLD_TO_NEW, get_corpus, norm_number, roman_to_int
 from .detector import convert, convert_text, detect_references, reverse
@@ -477,6 +477,25 @@ def predict_sections(body: PredictIn, user: dict = Depends(current_user)):
     top = out["predictions"][0] if out["predictions"] else None
     db.log_activity(user["id"], "predict", f"Section prediction: {text[:80]}",
                     f"top: {top['ipc']} ({round(top['probability'] * 100)}%)" if top else "search only")
+    return out
+
+
+# --------------------------------------------------------------------------- case analyzer (model + rules + Groq)
+class AnalyzeIn(BaseModel):
+    text: str
+    role: Optional[str] = None  # "accused" or "complainant" overrides the detected role
+
+
+@app.post("/api/analyze", tags=["predictor"])
+def analyze_case(body: AnalyzeIn, user: dict = Depends(current_user)):
+    text = body.text.strip()
+    if len(text) < 15:
+        raise HTTPException(400, "Please describe what happened in at least one full sentence.")
+    if len(text) > 8000:
+        raise HTTPException(413, "Text is too long (max 8,000 characters).")
+    out = case_analyzer.analyze(text, role=body.role)
+    db.log_activity(user["id"], "predict", f"Case analysis: {text[:80]}",
+                    f"{out['severity']['charges']} likely charges · role {out['facts']['user_role']}")
     return out
 
 
