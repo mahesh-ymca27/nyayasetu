@@ -9,7 +9,9 @@ from backend.config import ENV_FILE, ROOT, settings
 def describe_key() -> None:
     key = settings.groq_api_key
     if key:
-        print(f"  Groq API key loaded from {ENV_FILE.name}: {key[:4]}...{key[-4:]}  (model: {settings.groq_model})")
+        # On a server (e.g. Hugging Face Spaces) the key comes from an environment secret, not a .env file.
+        source = ENV_FILE.name if ENV_FILE else "environment"
+        print(f"  Groq API key loaded from {source}: {key[:4]}...{key[-4:]}  (model: {settings.groq_model})")
         if not key.startswith("gsk_"):
             print("  WARNING: Groq keys normally start with 'gsk_'. Check that you pasted the whole key.")
         return
