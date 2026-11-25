@@ -80,6 +80,49 @@ def test_groq_judge_is_restricted_to_real_sections(monkeypatch):
     assert len(calls) == 2
 
 
+def test_unproven_false_claim_by_other_side_is_not_applies(monkeypatch):
+    def fake_chat_json(messages, **kw):
+        if messages[0]["content"].startswith("You analyse incidents"):
+            return {"summary": "Drunk riding; parked car hit; owner's assault claim disputed.", "user_role": "accused",
+                    "flags": {"vehicle": True, "intoxication": True, "property_damage": True, "false_accusation": True}}
+        assert "does not prove it is false" in messages[0]["content"]  # the rule is in the judge prompt
+        return {"assessments": [
+            {"id": "BNS-281", "verdict": "applies", "against": "user", "reason": "rash riding"},
+            {"id": "BNS-324", "verdict": "applies", "against": "user", "reason": "car damaged"},
+            {"id": "BNS-227", "verdict": "applies", "against": "other_party", "reason": "false claim"}],
+            "additional": [{"id": "BNS-246", "reason": "false claim in court"}]}
+
+    monkeypatch.setattr(llm, "available", lambda: True)
+    monkeypatch.setattr(llm, "chat_json", fake_chat_json)
+    monkeypatch.setattr(llm, "chat", lambda *a, **k: "Explanation. This is legal information, not legal advice.")
+    monkeypatch.setattr(case_analyzer, "candidates", lambda text, facts: [
+        {"id": f"BNS-{n}", "act": "BNS", "number": n, "heading": h, "sources": {"search_rank": i}, "ipc": []}
+        for i, (n, h) in enumerate([("281", "Rash driving"), ("324", "Mischief"), ("227", "Giving false evidence")], 1)])
+    r = case_analyzer.analyze(SCOOTY)
+    c = by_id(r)
+    assert c["BNS-281"]["verdict"] == "applies" and c["BNS-324"]["verdict"] == "applies"
+    assert c["BNS-227"]["verdict"] == "needs_info" and c["BNS-227"]["decided_by"] == "groq+rule"
+    assert c["BNS-227"]["reason"].startswith("Only if it is proved")
+    # also when Groq adds the section itself (no "against" given)
+    assert c["BNS-246"]["verdict"] == "needs_info"
+    assert r["severity"]["charges"] == 2
+
+
+def test_falsity_section_against_the_user_is_kept(monkeypatch):
+    def fake_chat_json(messages, **kw):
+        if messages[0]["content"].startswith("You analyse incidents"):
+            return {"summary": "The user filed a complaint they knew was false.", "user_role": "accused", "flags": {}}
+        return {"assessments": [{"id": "BNS-248", "verdict": "applies", "against": "user", "reason": "false charge"}]}
+
+    monkeypatch.setattr(llm, "available", lambda: True)
+    monkeypatch.setattr(llm, "chat_json", fake_chat_json)
+    monkeypatch.setattr(llm, "chat", lambda *a, **k: "x")
+    monkeypatch.setattr(case_analyzer, "candidates", lambda text, facts: [
+        {"id": "BNS-248", "act": "BNS", "number": "248", "heading": "False charge", "sources": {"search_rank": 1}, "ipc": []}])
+    r = case_analyzer.analyze("I filed a police complaint against my neighbour that I knew was untrue.")
+    assert by_id(r)["BNS-248"]["verdict"] == "applies"
+
+
 def test_analyze_api(client, auth):
     r = client.post("/api/analyze", json={"text": SCOOTY}, headers=auth)
     assert r.status_code == 200

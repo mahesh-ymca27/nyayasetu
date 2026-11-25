@@ -73,6 +73,11 @@ FACT_SEEDS = [
 ]
 DISPUTED_REASON = "Alleged by the other side and disputed by you; it depends on the evidence."
 
+# Offences whose core ingredient is that a claim, statement or charge is false. Against the other side, the
+# user's word that their claim is false is not proof, so these are never "applies" against the other party.
+FALSITY_SECTIONS = {"217", "227", "228", "229", "230", "231", "233", "236", "246", "248", "356"}
+UNPROVEN_FALSITY = "Only if it is proved that the other side's claim is false. "
+
 RULE_REASON = {
     "death": "No death is described, and this offence requires a death.",
     "intent_to_kill_or_weapon": "Nothing suggests an intention to kill or a deadly weapon.",
@@ -230,7 +235,8 @@ and punishment. Judge EVERY candidate. Return a JSON object:
  "additional": [{"id": "BNS-115", "reason": "..."}],
  "outside_corpus": [{"law": "Motor Vehicles Act, 1988", "section": "185", "reason": "..."}]}
 Rules: "applies" only if the stated facts or allegations fit the section's ingredients. Use "needs_info" when it
-depends on facts not given. "against" says who would face the charge. "additional" may list at most 3 more BNS
+depends on facts not given. The user saying that the other side's claim is false does not prove it is false:
+sections about false claims, false evidence, false charges or defamation against the other side are "needs_info". "against" says who would face the charge. "additional" may list at most 3 more BNS
 sections that clearly apply and are missing; use the form "BNS-<number>". "outside_corpus" may list laws other
 than BNS, BNSS and BSA (for example the Motor Vehicles Act). Do not invent facts."""
 
@@ -282,6 +288,11 @@ def assess(facts: dict, cands: list[dict]) -> tuple[list[dict], list[dict], str,
                                   "ipc": [f"{p['act']} {p['number']}" for p in reverse("BNS", sec["number"])][:3],
                                   "verdict": "applies", "reason": str(a.get("reason", ""))[:300],
                                   "decided_by": "groq", "against": "either"})
+            for c in cands:  # enforce the falsity rule even if the judge ignored it
+                if (c.get("verdict") == "applies" and c.get("against") != "user"
+                        and c["number"] in FALSITY_SECTIONS and c["act"] == "BNS"):
+                    c.update(verdict="needs_info", reason=UNPROVEN_FALSITY + c.get("reason", ""),
+                             decided_by="groq+rule")
             outside = [{"law": str(o.get("law", ""))[:80], "section": str(o.get("section", ""))[:20],
                         "reason": str(o.get("reason", ""))[:200]}
                        for o in (out.get("outside_corpus") or [])[:4] if o.get("law")]
