@@ -1,28 +1,34 @@
-# Deploying NyayaSetu to Hugging Face Spaces (free)
+# Deploying NyayaSetu (free, on Render)
 
-The free CPU Space (2 vCPU, 16 GB RAM) runs the whole app, including the trained model. The Space contains only
-two small files; its Dockerfile downloads the code, data and model from this GitHub repository's `main` branch.
+Render's free web service (512 MB RAM, no credit card) runs the whole app, including the trained model, straight
+from this GitHub repository. The settings are in [`render.yaml`](render.yaml).
 
-## One-time setup (in the browser, no git needed)
-1. Sign in at https://huggingface.co and open https://huggingface.co/new-space
-2. **Space name:** `nyayasetu` · **SDK:** Docker · **Template:** Blank · **Hardware:** CPU basic (free) ·
-   **Visibility:** Public. Click **Create Space**.
-3. Open the Space's **Files** tab → **Add file** → **Upload files**, and upload these two files from this
-   repository's `deploy/huggingface/` folder: `Dockerfile` and `README.md` (replace the README the Space created).
-   Click **Commit changes to main**.
-4. Open **Settings** → **Variables and secrets** → **New secret**. Name: `GROQ_API_KEY`, value: your Groq key.
-   Save. (A *secret*, not a variable, so the key is never shown publicly.)
-5. The Space builds automatically (about 3–6 minutes; watch the **Logs** tab). When it says **Running**, open
-   `https://<your-username>-nyayasetu.hf.space` and sign in with **demo@nyayasetu.in / demo1234**.
+## One-time setup (in the browser)
+1. Open https://render.com and choose **Get Started** → **GitHub**. Sign in with the GitHub account that owns
+   this repository and allow Render to access it.
+2. In the Render dashboard: **New** → **Blueprint**.
+3. Choose the repository **nyayasetu** and click **Connect**. Render reads `render.yaml` and shows one free web
+   service called `nyayasetu`.
+4. It asks for **GROQ_API_KEY**: paste your Groq key (it is stored as a secret on Render, not in the repository).
+   Click **Apply** / **Deploy Blueprint**.
+5. The first build takes about 5–10 minutes (watch **Logs**). When the service shows **Live**, open the URL at
+   the top of its page (for example `https://nyayasetu.onrender.com`; Render adds letters if the name is taken)
+   and sign in with **demo@nyayasetu.in / demo1234**.
 
-## Updating after a new change is merged on GitHub
-Space **Settings** → **Factory rebuild**. The Dockerfile downloads the latest `main` again.
+## Updating
+`autoDeploy` is on: every change merged into `main` on GitHub is deployed automatically. To redeploy by hand:
+service page → **Manual Deploy** → **Deploy latest commit**.
 
-## Good to know
-- **Data resets on restart.** Free Spaces have no permanent disk, so registered users, questions and uploaded
-  documents are cleared when the Space restarts. The demo account is recreated every time.
-- **Sleep.** A free Space sleeps after a period without visitors and wakes on the next visit (about a minute).
-  Open it a few minutes before a demo.
-- **Groq usage.** The Space is public and uses your Groq key; anyone using it uses your free-tier quota.
-- The `docker` job in GitHub Actions builds the same image for every pull request and checks that it starts,
-  the demo login works and the trained model loads.
+## Good to know about the free plan
+- **It sleeps.** After 15 minutes without visitors the service stops; the next visit wakes it in about a minute.
+  Open the site a few minutes before a demo.
+- **It is slow to start and to think.** The free plan has a small share of a CPU, so the first page and the
+  first search after waking take longer. Groq answers are not affected (they run on Groq's servers).
+- **Data resets.** There is no permanent disk, so registered users, questions and uploaded documents are cleared
+  whenever the service restarts or redeploys. The demo account is recreated every time.
+- **Groq usage.** The site is public and uses your Groq key; anyone using it uses your free-tier quota.
+
+## Other hosts
+`deploy/huggingface/` contains a Docker setup for Hugging Face Spaces. Hugging Face now requires a paid plan
+(PRO) for Docker Spaces, so it is kept for that case only. The same image is built and tested in GitHub Actions
+(the `docker` job), which also reports how much memory the running app uses.

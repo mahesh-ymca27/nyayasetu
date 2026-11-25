@@ -49,3 +49,13 @@ jobs:
           curl -sf http://localhost:7860/api/predict/status -H "Authorization: Bearer $TOKEN" | tee status.json
           grep -q '"available":true' status.json
           curl -sf http://localhost:7860/ | grep -q NyayaSetu
+      - name: Memory use after loading the model and searching (Render's free plan has 512 MB)
+        run: |
+          TOKEN=$(curl -sf -X POST http://localhost:7860/api/auth/login -H 'Content-Type: application/json' \
+                  -d '{"email":"demo@nyayasetu.in","password":"demo1234"}' | python3 -c 'import sys,json;print(json.load(sys.stdin)["token"])')
+          curl -sf -X POST http://localhost:7860/api/predict -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+               -d '{"text":"The accused stole a motorcycle parked outside the house at night."}' > /dev/null
+          curl -sf "http://localhost:7860/api/search?q=cheating" -H "Authorization: Bearer $TOKEN" > /dev/null
+          curl -sf http://localhost:7860/api/evaluation -H "Authorization: Bearer $TOKEN" > /dev/null
+          docker stats --no-stream --format 'container memory: {{.MemUsage}}' app | tee mem.txt
+          python3 -c "import re;t=open('mem.txt').read();v=float(re.search(r'([\d.]+)MiB',t).group(1));print('MiB',v);assert v<450,'too close to 512 MB'"
