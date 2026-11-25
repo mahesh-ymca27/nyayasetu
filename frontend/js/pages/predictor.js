@@ -24,7 +24,7 @@ function chargeCard(c) {
       <span class="link" data-section="${esc(c.id)}">${esc(c.act)} ${esc(c.number)}</span><b>${esc(c.heading)}</b>
       ${c.ipc.length ? `<span class="faint" style="font-size:12px">was ${esc(c.ipc.join(", "))}</span>` : ""}</div>
       <div class="row wrap" style="gap:4px">${against ? `<span class="chip" style="font-size:11px">${against}</span>` : ""}${sourceChips(c)}</div></div>
-    <div class="muted" style="margin-top:6px;font-size:13px">${esc(c.reason)} <span class="faint" style="font-size:11.5px">(${c.decided_by === "groq" ? "checked by Groq" : "rule"})</span></div>
+    <div class="muted" style="margin-top:6px;font-size:13px">${esc(c.reason)} <span class="faint" style="font-size:11.5px">(${c.decided_by === "groq" ? "checked by Groq" : c.decided_by === "groq+rule" ? "checked by Groq, corrected by rule" : "rule"})</span></div>
     ${c.verdict !== "unlikely" && c.classification ? classificationFacts(c.classification) : ""}</div>`;
 }
 
