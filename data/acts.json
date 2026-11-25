@@ -1,0 +1,56 @@
+[
+ {
+  "code": "IPC",
+  "name": "Indian Penal Code",
+  "year": 1860,
+  "era": "old",
+  "successor": "BNS",
+  "act_id": "A1860-45",
+  "sections": 575
+ },
+ {
+  "code": "CrPC",
+  "name": "Code of Criminal Procedure",
+  "year": 1973,
+  "era": "old",
+  "successor": "BNSS",
+  "act_id": "A1974-2",
+  "sections": 535
+ },
+ {
+  "code": "IEA",
+  "name": "Indian Evidence Act",
+  "year": 1872,
+  "era": "old",
+  "successor": "BSA",
+  "act_id": "A1872-1",
+  "sections": 185
+ },
+ {
+  "code": "BNS",
+  "name": "Bharatiya Nyaya Sanhita",
+  "year": 2023,
+  "era": "new",
+  "predecessor": "IPC",
+  "act_id": "A2023-45",
+  "sections": 358
+ },
+ {
+  "code": "BNSS",
+  "name": "Bharatiya Nagarik Suraksha Sanhita",
+  "year": 2023,
+  "era": "new",
+  "predecessor": "CrPC",
+  "act_id": "A2023-46",
+  "sections": 531
+ },
+ {
+  "code": "BSA",
+  "name": "Bharatiya Sakshya Adhiniyam",
+  "year": 2023,
+  "era": "new",
+  "predecessor": "IEA",
+  "act_id": "A2023-47",
+  "sections": 170
+ }
+]

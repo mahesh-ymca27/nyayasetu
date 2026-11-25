@@ -1,0 +1,12 @@
+{
+ "CrPC->BNSS": {
+  "correct": 17,
+  "total": 18,
+  "accuracy": 0.944
+ },
+ "IEA->BSA": {
+  "correct": 11,
+  "total": 12,
+  "accuracy": 0.917
+ }
+}
