@@ -110,6 +110,21 @@ def test_parallel_and_single_core_training_agree():
     assert a["labels"] == b["labels"] and abs(a["W"] - b["W"]).max() < 1e-5
 
 
+def test_threshold_tuning_scores_texts_once(tiny_model, monkeypatch):
+    model, _ = tiny_model
+    calls = []
+    real = section_model.scores
+    monkeypatch.setattr(section_model, "scores", lambda *a, **k: calls.append(1) or real(*a, **k))
+    texts = [t for ex in SYNTHETIC.values() for t in ex]
+    labels = [[sec] for sec, ex in SYNTHETIC.items() for _ in ex]
+    threshold, curve = section_model.tune_threshold(model, texts, labels)
+    assert len(calls) == 1 and len(curve) == 19
+    best = max(curve, key=lambda c: (c["macro_f1"], c["micro_f1"]))
+    assert threshold == best["threshold"]
+    # same numbers as the full evaluate() at that threshold
+    assert section_model.evaluate(model, texts, labels, threshold=threshold)["macro_f1"] == best["macro_f1"]
+
+
 def test_resolve_jobs():
     import os
 
