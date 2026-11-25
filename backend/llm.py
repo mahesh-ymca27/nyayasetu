@@ -5,6 +5,7 @@ account's model list, saves the choice to storage/settings.json and retries once
 """
 from __future__ import annotations
 
+import http.client
 import json
 import re
 import time
@@ -57,7 +58,8 @@ def available() -> bool:
     return bool(settings.groq_api_key)
 
 
-def _request(path: str, payload: dict | None = None, stream: bool = False, timeout: int = 60):
+def _request(path: str, payload: dict | None = None, stream: bool = False, timeout: float = 60, retries: int = 1):
+    """Sends a request to Groq. Dropped connections are retried `retries` times; error replies are not."""
     url = settings.groq_base_url.rstrip("/") + path
     data = json.dumps(payload).encode() if payload is not None else None
     req = urllib.request.Request(
@@ -71,6 +73,20 @@ def _request(path: str, payload: dict | None = None, stream: bool = False, timeo
             "User-Agent": "NyayaSetu/1.0",
         },
     )
+    for attempt in range(retries + 1):
+        try:
+            return _open(req, timeout)
+        except LLMConnectionError:
+            if attempt == retries:
+                raise
+            time.sleep(1.0)  # dropped connections usually succeed on the second try
+
+
+class LLMConnectionError(LLMError):
+    """The connection to Groq failed or was dropped (not an error reply from Groq)."""
+
+
+def _open(req, timeout: float):
     try:
         return urllib.request.urlopen(req, timeout=timeout)
     except urllib.error.HTTPError as e:
@@ -86,7 +102,10 @@ def _request(path: str, payload: dict | None = None, stream: bool = False, timeo
             raise ModelUnavailable(f"Groq API error {e.code}: {body}") from e
         raise LLMError(f"Groq API error {e.code}: {body}") from e
     except urllib.error.URLError as e:
-        raise LLMError(f"Could not reach Groq: {e.reason}") from e
+        raise LLMConnectionError(f"Could not reach Groq: {e.reason}") from e
+    except (http.client.HTTPException, ConnectionError, TimeoutError, OSError) as e:
+        # e.g. RemoteDisconnected: Groq closed the connection without replying
+        raise LLMConnectionError(f"Connection to Groq was interrupted ({type(e).__name__})") from e
 
 
 def list_models() -> list[str]:
@@ -126,17 +145,27 @@ def _payload(messages: list[dict], temperature: float, max_tokens: int, model: s
 
 
 def chat(messages: list[dict], temperature: float = 0.2, max_tokens: int = 1200,
-         json_mode: bool = False, model: str | None = None, _retry: bool = True) -> str:
+         json_mode: bool = False, model: str | None = None, _retry: bool = True,
+         timeout: float = 90, retries: int = 1) -> str:
     extra = {"response_format": {"type": "json_object"}} if json_mode else {}
+    payload = _payload(messages, temperature, max_tokens, model, **extra)
     try:
-        with _request("/chat/completions", _payload(messages, temperature, max_tokens, model, **extra),
-                      timeout=90) as resp:
-            data = json.loads(resp.read())
+        for attempt in range(retries + 1):
+            try:
+                with _request("/chat/completions", payload, timeout=timeout, retries=0) as resp:
+                    data = json.loads(resp.read())
+                break
+            except (http.client.HTTPException, ConnectionError, TimeoutError, OSError, LLMConnectionError) as e:
+                # the connection can also drop while the reply is being read
+                if attempt == retries:
+                    raise LLMConnectionError(f"Connection to Groq was interrupted ({type(e).__name__})") from e
+                time.sleep(1.0)
     except ModelUnavailable:
         if not _retry or model:
             raise
         pick_working_model()
-        return chat(messages, temperature, max_tokens, json_mode, None, _retry=False)
+        return chat(messages, temperature, max_tokens, json_mode, None, _retry=False, timeout=timeout,
+                    retries=retries)
     content = data["choices"][0]["message"].get("content") or ""
     return THINK.sub("", content).strip()
 
@@ -193,7 +222,7 @@ def stream_chat(messages: list[dict], temperature: float = 0.2, max_tokens: int 
         return
     in_think = False
     with resp:
-        for raw in resp:
+        for raw in _safe_lines(resp):
             line = raw.decode("utf-8", errors="ignore").strip()
             if not line.startswith("data:"):
                 continue
@@ -217,6 +246,19 @@ def stream_chat(messages: list[dict], temperature: float = 0.2, max_tokens: int 
                 continue
             if delta:
                 yield delta
+
+
+def _safe_lines(resp) -> Iterator[bytes]:
+    """Reads a streamed reply line by line; a dropped connection mid-answer becomes an LLMError."""
+    it = iter(resp)
+    while True:
+        try:
+            line = next(it)
+        except StopIteration:
+            return
+        except (http.client.HTTPException, ConnectionError, TimeoutError, OSError) as e:
+            raise LLMConnectionError(f"Connection to Groq dropped during the answer ({type(e).__name__})") from e
+        yield line
 
 
 def ping() -> dict:

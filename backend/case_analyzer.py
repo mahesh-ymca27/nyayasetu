@@ -409,7 +409,8 @@ def analyze(text: str, role: str | None = None) -> dict:
     return {
         "facts": facts,
         "candidates": cands,
-        "severity": severity(applies),
+        # Seriousness is about the user's own exposure: charges the judge assigned to the other side are excluded.
+        "severity": severity([c for c in applies if c.get("against") != "other_party"]),
         "relief": reliefs,
         "next_steps": next_steps(facts),
         "outside_corpus": outside,

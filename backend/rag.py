@@ -64,6 +64,9 @@ def verify_citations(answer: str, retrieved_ids: list[str]) -> dict:
             "score": round(grounded / len(cited), 3) if cited else 0.0}
 
 
+REWRITE_TIMEOUT = 4  # seconds; the rewrite only improves search, so the answer must not wait longer for it
+
+
 def rewrite_query(question: str) -> str:
     """Uses the LLM to turn a Hindi/colloquial question into English statutory keywords."""
     try:
@@ -72,7 +75,7 @@ def rewrite_query(question: str) -> str:
                                           "appear in the text of Indian criminal statutes. Keep any section numbers "
                                           "and act names. Output keywords only."},
             {"role": "user", "content": question},
-        ], max_tokens=60, temperature=0)
+        ], max_tokens=60, temperature=0, timeout=REWRITE_TIMEOUT, retries=0)
         return out.strip().replace("\n", " ")
     except llm.LLMError:
         return ""
