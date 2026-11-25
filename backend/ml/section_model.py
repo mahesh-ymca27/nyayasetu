@@ -142,17 +142,26 @@ def predict_sets(P, threshold: float):
     return out
 
 
-def evaluate(model: dict, texts: list[str], labels: list[list[str]], threshold: float | None = None) -> dict:
+def label_matrix(model: dict, labels: list[list[str]]):
     import numpy as np
-    from sklearn.metrics import f1_score
 
-    P = scores(model, texts)
     index = {l: i for i, l in enumerate(model["labels"])}
-    Y = np.zeros(P.shape, dtype=bool)
+    Y = np.zeros((len(labels), len(model["labels"])), dtype=bool)
     for r, ls in enumerate(labels):
         for l in ls:
             if l in index:
                 Y[r, index[l]] = True
+    return Y
+
+
+def evaluate(model: dict, texts: list[str], labels: list[list[str]], threshold: float | None = None,
+             P=None) -> dict:
+    """Test metrics. Pass precomputed scores P to avoid re-processing the texts."""
+    import numpy as np
+    from sklearn.metrics import f1_score
+
+    P = scores(model, texts) if P is None else P
+    Y = label_matrix(model, labels)
     pred = predict_sets(P, model["threshold"] if threshold is None else threshold)
     order = np.argsort(-P, axis=1)
     has = Y.any(axis=1)
@@ -170,11 +179,19 @@ def evaluate(model: dict, texts: list[str], labels: list[list[str]], threshold: 
 
 
 def tune_threshold(model: dict, texts: list[str], labels: list[list[str]]) -> tuple[float, list[dict]]:
-    """Picks the decision threshold with the best macro-F1 on held-out data."""
+    """Picks the decision threshold with the best macro-F1 on held-out data.
+
+    The texts are scored once; only the cheap F1 computation is repeated per threshold."""
+    from sklearn.metrics import f1_score
+
+    P = scores(model, texts)
+    Y = label_matrix(model, labels)
     curve = []
     for t in [round(0.05 * i, 2) for i in range(1, 20)]:
-        m = evaluate(model, texts, labels, threshold=t)
-        curve.append({"threshold": t, "macro_f1": m["macro_f1"], "micro_f1": m["micro_f1"]})
+        pred = predict_sets(P, t)
+        curve.append({"threshold": t,
+                      "macro_f1": round(float(f1_score(Y, pred, average="macro", zero_division=0)), 4),
+                      "micro_f1": round(float(f1_score(Y, pred, average="micro", zero_division=0)), 4)})
     best = max(curve, key=lambda c: (c["macro_f1"], c["micro_f1"]))
     model["threshold"] = best["threshold"]
     return best["threshold"], curve
