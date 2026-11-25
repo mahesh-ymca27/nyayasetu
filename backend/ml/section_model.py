@@ -21,7 +21,8 @@ def normalize_label(label: str) -> str | None:
     """'Section 302', 'IPC_302', 'Section 120-B', 'Section 498 A', '1860_Section 34' -> '302', '302', '120B', '498A', '34'.
 
     Takes the last section number in the string; 4-digit numbers are years (e.g. 1860), not sections."""
-    found = [(n + s).upper() for n, s in LABEL_NUMBER.findall(str(label)) if len(n) <= 3]
+    text = re.sub(r"\([^)]*\)", " ", str(label))  # drop sub-sections: "376(2)" -> "376"
+    found = [(n + s).upper() for n, s in LABEL_NUMBER.findall(text) if len(n) <= 3]
     return found[-1] if found else None
 
 
