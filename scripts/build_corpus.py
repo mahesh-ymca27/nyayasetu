@@ -195,6 +195,23 @@ GOLD_ALIGN = {
                      "3": "2", "101": "104", "106": "109", "24": "22", "60": "55", "74": "74"},
 }
 
+# Well-known transitions the aligner cannot find on its own, because the new code merged two old
+# sections into one (the aligner links each new section to a single old one).
+CURATED = {
+    ("CrPC", "BNSS"): {"35": ["41", "41A"]},
+    ("IEA", "BSA"): {"2": ["3"]},
+}
+
+
+def apply_curated(rows: list[dict], old_code: str, new_code: str) -> None:
+    for new, olds in CURATED.get((old_code, new_code), {}).items():
+        row = next((r for r in rows if r["new"] == new), None)
+        if row is None:
+            continue
+        merged = list(dict.fromkeys(row["old"] + olds))
+        row.update({"old": merged, "source": "curated", "confidence": 1.0,
+                    "type": "merged" if len(merged) > 1 else "direct"})
+
 
 def main() -> None:
     ap = argparse.ArgumentParser()
@@ -208,11 +225,13 @@ def main() -> None:
     gold_report = {}
     for old_code, new_code in (("CrPC", "BNSS"), ("IEA", "BSA")):
         rows = align(acts[old_code], acts[new_code], old_code, new_code)
-        mappings.extend(rows)
+        # Accuracy is measured on the aligner's own output, before curated fixes are applied.
         gold = GOLD_ALIGN[(old_code, new_code)]
         new_to_old = {r["new"]: set(r["old"]) for r in rows}
         hits = sum(1 for o, n in gold.items() if o in new_to_old.get(n, set()))
         gold_report[f"{old_code}->{new_code}"] = {"correct": hits, "total": len(gold), "accuracy": round(hits / len(gold), 3)}
+        apply_curated(rows, old_code, new_code)
+        mappings.extend(rows)
 
     meta = []
     for act_id, m in ACTS.items():

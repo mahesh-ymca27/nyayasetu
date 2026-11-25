@@ -84,7 +84,7 @@ async function convertOne(act, num) {
         <span class="chip">${icon("target")} Text similarity ${Math.round(sim * 100)}%</span>
         <span class="chip"><span class="diff-add">&nbsp;+${fmt(d.added)}&nbsp;</span> words added</span>
         <span class="chip"><span class="diff-del">&nbsp;−${fmt(d.removed)}&nbsp;</span> words removed</span>
-        <span class="tag ${first.source === "official" ? "tag-off" : "tag-auto"}">${first.source === "official" ? "Official NCRB mapping" : `Auto-aligned · ${Math.round(first.confidence * 100)}% confidence`}</span>
+        <span class="tag ${first.source === "auto-aligned" ? "tag-auto" : "tag-off"}">${first.source === "official" ? "Official NCRB mapping" : first.source === "curated" ? "Curated mapping" : `Auto-aligned · ${Math.round(first.confidence * 100)}% confidence`}</span>
         ${r.results.length > 1 ? `<span class="tag tag-violet">${r.results.length} related sections</span>` : ""}
       </div>
       <div class="compare">
@@ -151,7 +151,7 @@ async function table() {
     ${r.rows.map((x) => `<tr><td><span class="link" data-section="${esc(x.new_id)}">${esc(x.new)}</span></td><td>${esc(x.new_heading)}</td>
       <td>${x.old.length ? x.old.map((o, i) => `<span class="link" data-section="${esc(o.replace(" ", "-"))}" title="${esc(x.old_headings[i])}">${esc(o)}</span>`).join(", ") : '<span class="faint">-</span>'}</td>
       <td><span class="tag ${typeTag[x.type] || ""}">${esc(x.type.replace("_", " "))}</span></td>
-      <td>${x.source === "official" ? '<span class="tag tag-off">NCRB official</span>' : `<span class="tag tag-auto">auto · ${Math.round(x.confidence * 100)}%</span>`}</td></tr>`).join("") || `<tr><td colspan="5" class="empty">No rows match.</td></tr>`}
+      <td>${x.source === "official" ? '<span class="tag tag-off">NCRB official</span>' : x.source === "curated" ? '<span class="tag tag-off">curated</span>' : `<span class="tag tag-auto">auto · ${Math.round(x.confidence * 100)}%</span>`}</td></tr>`).join("") || `<tr><td colspan="5" class="empty">No rows match.</td></tr>`}
     </tbody></table></div>
     <div class="row between mt"><span class="faint">${fmt(r.total)} rows · page ${r.page} of ${pages}</span>
     <div class="row"><button class="btn btn-sm" id="pg-prev" ${r.page <= 1 ? "disabled" : ""}>Previous</button><button class="btn btn-sm" id="pg-next" ${r.page >= pages ? "disabled" : ""}>Next</button></div></div>`;
